@@ -487,9 +487,9 @@ MonoBehaviour:
     m_Extent: {x: 0, y: 0, z: 0}
   _rootSize: {x: 120, y: 120, z: 120}
   capacity: 4
-  maxLevels: 7
+  maxLevels: 6
   _createChildNodesFromStart: 0
-  _showGizmos: 1
+  _showGizmos: 0
 --- !u!4 &524905401
 Transform:
   m_ObjectHideFlags: 0
@@ -1301,7 +1301,7 @@ PrefabInstance:
     - target: {fileID: 5327807678545421759, guid: b6ac408c2826db5458a84d50d5f85b54,
         type: 3}
       propertyPath: viewAngleCos
-      value: -0.5984601
+      value: -0.9756293
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b6ac408c2826db5458a84d50d5f85b54, type: 3}

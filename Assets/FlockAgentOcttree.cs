@@ -179,6 +179,7 @@ public class FlockAgentOcttreeNode
     }
 
 
+    //Gives neighbouring agents in the same node and fills a list with neighbouring nodes that can also be searche later
     public void GetNeighbouringAgents(FlockAgent agent, Vector3 position, ref List<FlockAgent> agentsInNodes, ref List<Vector3> neighbouringNodes)
     {
         if (!ContainsPoint(position))
@@ -216,15 +217,29 @@ public class FlockAgentOcttreeNode
 
         Vector3 currentVector;
         float squaredRadius = agent.sightRadius * agent.sightRadius;
-        
-        for(int i = 0; i < currentCount; i++)
+        Vector3 agentForward = agent.forward;
+        Vector3 agentPos = agent.position;
+        float agentViewAngleCos = agent.viewAngleCos;
+
+        for (int i = 0; i < currentCount; i++)
         {
-            currentVector = (agent.position - agents[i].position);
-            if (currentVector.sqrMagnitude <= squaredRadius && Vector3.Dot(agent.forward, currentVector.normalized) > agent.viewAngleCos && agents[i] != agent)
+            currentVector = (agentPos - agents[i].position);
+            if (currentVector.sqrMagnitude <= squaredRadius && Vector3.Dot(agentForward, currentVector) > (agentViewAngleCos * currentVector.magnitude) && agents[i] != agent)
                 agentsInNodes.Add(agents[i]);
         }
+
+        //Vector3 currentVector;
+        //float squaredRadius = agent.sightRadius * agent.sightRadius;
+
+        //for (int i = 0; i < currentCount; i++)
+        //{
+        //    currentVector = (agent.position - agents[i].position);
+        //    if (currentVector.sqrMagnitude <= squaredRadius && Vector3.Dot(agent.forward, currentVector.normalized) > (agent.viewAngleCos) && agents[i] != agent)
+        //        agentsInNodes.Add(agents[i]);
+        //}
     }
-    
+
+    //Is called for remaining neighbouring nodes
     public void GetNeighbouringAgents(FlockAgent agent, Vector3 position, ref List<FlockAgent> agentsInNodes)
     {
         if (!ContainsPoint(position))
@@ -245,13 +260,26 @@ public class FlockAgentOcttreeNode
 
         Vector3 currentVector;
         float squaredRadius = agent.sightRadius * agent.sightRadius;
+        Vector3 agentForward = agent.forward;
+        Vector3 agentPos = agent.position;
+        float agentViewAngleCos = agent.viewAngleCos;
 
         for (int i = 0; i < currentCount; i++)
         {
-            currentVector = (agent.position - agents[i].position);
-            if (currentVector.sqrMagnitude <= squaredRadius && Vector3.Dot(agent.forward, currentVector.normalized) > agent.viewAngleCos && agents[i] != agent)
+            currentVector = (agentPos - agents[i].position);
+            if (currentVector.sqrMagnitude <= squaredRadius && Vector3.Dot(agentForward, currentVector) > (agentViewAngleCos * currentVector.magnitude) && agents[i] != agent)
                 agentsInNodes.Add(agents[i]);
         }
+
+        //Vector3 currentVector;
+        //float squaredRadius = agent.sightRadius * agent.sightRadius;
+
+        //for (int i = 0; i < currentCount; i++)
+        //{
+        //    currentVector = (agent.position - agents[i].position);
+        //    if (currentVector.sqrMagnitude <= squaredRadius && Vector3.Dot(agent.forward, currentVector.normalized) > (agent.viewAngleCos) && agents[i] != agent)
+        //        agentsInNodes.Add(agents[i]);
+        //}
     }
 
 
