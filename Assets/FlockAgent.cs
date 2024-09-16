@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
 
 public class FlockAgent : MonoBehaviour
@@ -145,4 +146,33 @@ public class SteeringBehaviourItems
     public SteeringBehaviour behaviour;
     public float weight = 1f;
     public float forceMultiplier = 1f;
+}
+
+
+public class FlockAgentBaker : Baker<FlockAgent>
+{
+
+    public override void Bake(FlockAgent authoring)
+    {
+        Entity entity = GetEntity(TransformUsageFlags.Dynamic);
+
+        AddComponent(entity, new AgentMovement());
+        AddComponent(entity, new AgentSight());
+    }
+}
+
+
+public struct AgentMovement : IComponentData
+{
+    public Vector3 velocity;
+    public float maxSpeed;
+    public float _deceleration;
+    public float _acceleration;
+}
+
+public struct AgentSight : IComponentData
+{
+    public float sightRadius;
+    public float viewAngle;
+    public float viewAngleCos;
 }
