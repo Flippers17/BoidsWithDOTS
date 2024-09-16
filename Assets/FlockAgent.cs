@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class FlockAgent : MonoBehaviour
 {
@@ -15,15 +17,15 @@ public class FlockAgent : MonoBehaviour
     [HideInInspector]
     public Vector3 velocity;
     [SerializeField]
-    private float _maxSpeed = 5f;
+    internal float _maxSpeed = 5f;
     [SerializeField]
-    private float _deceleration = 5f;
+    internal float _deceleration = 5f;
     [SerializeField]
-    private float _acceleration = 10f;
+    internal float _acceleration = 10f;
 
     public float sightRadius = 2f;
     [SerializeField, Range(0f, 180f)]
-    private float viewAngle = 180;
+    internal float viewAngle = 180;
     [HideInInspector, SerializeField]
     public float viewAngleCos = 0f;
 
@@ -156,18 +158,20 @@ public class FlockAgentBaker : Baker<FlockAgent>
     {
         Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
-        AddComponent(entity, new AgentMovement());
-        AddComponent(entity, new AgentSight());
+        AddComponent(entity, new AgentMovement() { maxSpeed = authoring._maxSpeed, acceleration = authoring._acceleration, deceleration = authoring._deceleration, velocity = Vector3.forward * authoring._maxSpeed});
+        AddComponent(entity, new AgentSight() { sightRadius = authoring.sightRadius, viewAngle = authoring.viewAngle, viewAngleCos = authoring.viewAngleCos});
     }
 }
 
 
 public struct AgentMovement : IComponentData
 {
-    public Vector3 velocity;
+    public float3 velocity;
     public float maxSpeed;
-    public float _deceleration;
-    public float _acceleration;
+    public float deceleration;
+    public float acceleration;
+
+    public int id;
 }
 
 public struct AgentSight : IComponentData

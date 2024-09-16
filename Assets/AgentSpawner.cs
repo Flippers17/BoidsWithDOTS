@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using Unity.Entities;
 using UnityEngine;
 
 public class AgentSpawner : MonoBehaviour
@@ -33,4 +35,23 @@ public class AgentSpawner : MonoBehaviour
 
         Gizmos.DrawWireSphere(transform.position, radius);
     }
+
+
+    public class Baker : Baker<AgentSpawner> 
+    {
+        public override void Bake(AgentSpawner authoring)
+        {
+            Entity entity = GetEntity(TransformUsageFlags.None);
+            AddComponent(entity, new AgentEntitySpawner { entityPrefab = GetEntity(authoring._agentPrefab, TransformUsageFlags.Dynamic), agentCount = authoring.agentCount, radius = authoring.radius});
+        }
+    }
+
+}
+
+
+public struct AgentEntitySpawner : IComponentData
+{
+    public Entity entityPrefab;
+    public int agentCount; 
+    public float radius;
 }
