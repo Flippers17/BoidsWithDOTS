@@ -1,5 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
 using UnityEngine;
 
 [CreateAssetMenu]
@@ -34,6 +38,44 @@ public class SeparationBehaviour : SteeringBehaviour
         }
 
         separationVector/= contextCount;
+        return separationVector;
+    }
+
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> context, NativeArray<bool> contextMask, float forceMultiplier, ref SystemState state)
+    {
+        int contextCount = context.Length;
+
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 separationVector = float3.zero;
+
+        float3 currentVector;
+
+        float squaredProtectedRange = 9;
+
+        int checkedCount = 0;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            if (!contextMask[i])
+                continue;
+
+            
+            currentVector = (context[i].ValueRO.Position - agentToMove);
+
+            float currentSquareMagnitude = FlockSystem.GetSquareMagnitude(currentVector);
+            if (currentSquareMagnitude < squaredProtectedRange)
+            {
+                separationVector -= currentVector * (forceMultiplier / Mathf.Max(currentSquareMagnitude, .1f));
+                checkedCount++;
+            }
+        }
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        separationVector /= Mathf.Max(checkedCount, 1);
         return separationVector;
     }
 }

@@ -159,7 +159,7 @@ public class FlockAgentBaker : Baker<FlockAgent>
         Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
         AddComponent(entity, new AgentMovement() { maxSpeed = authoring._maxSpeed, acceleration = authoring._acceleration, deceleration = authoring._deceleration, velocity = Vector3.forward * authoring._maxSpeed});
-        AddComponent(entity, new AgentSight() { sightRadius = authoring.sightRadius, viewAngle = authoring.viewAngle, viewAngleCos = authoring.viewAngleCos});
+        AddComponent(entity, new AgentSight() { sightRadius = authoring.sightRadius, viewAngle = authoring.viewAngle, viewAngleCos = authoring.viewAngleCos, obstacleMask = authoring.avoidanceMask});
     }
 }
 
@@ -172,6 +172,17 @@ public struct AgentMovement : IComponentData
     public float acceleration;
 
     public int id;
+
+
+    public AgentMovement SetVelocity(float3 velocity)
+    {
+        return new AgentMovement() { id = this.id, velocity = velocity, acceleration = this.acceleration, deceleration = this.deceleration, maxSpeed = this.maxSpeed };
+    }
+
+    public AgentMovement SetID(int id)
+    {
+        return new AgentMovement() { id = id, velocity = this.velocity, acceleration = this.acceleration, deceleration = this.deceleration, maxSpeed = this.maxSpeed };
+    }
 }
 
 public struct AgentSight : IComponentData
@@ -179,4 +190,6 @@ public struct AgentSight : IComponentData
     public float sightRadius;
     public float viewAngle;
     public float viewAngleCos;
+
+    public LayerMask obstacleMask;
 }

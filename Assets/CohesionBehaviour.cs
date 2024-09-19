@@ -32,7 +32,7 @@ public class CohesionBehaviour : SteeringBehaviour
     }
 
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> context, float forceMultiplier)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> context, NativeArray<bool> contextMask, float forceMultiplier, ref SystemState state)
     {
         int contextCount = context.Length;
 
@@ -40,13 +40,21 @@ public class CohesionBehaviour : SteeringBehaviour
             return Vector3.zero;
 
         float3 averagePosition = Vector3.zero;
+        int checkedCount = 0;
 
         for (int i = 0; i < contextCount; i++)
         {
-            averagePosition += context[i].Item1.ValueRO.Position;
+            if (contextMask[i])
+            {
+                averagePosition += context[i].ValueRO.Position;
+                checkedCount++;
+            }
         }
 
-        averagePosition /= contextCount;
+        averagePosition /= Mathf.Max(checkedCount, 1);
+
+        //context.Dispose();
+        //contextMask.Dispose();
 
         return (averagePosition - agentToMove) * (forceMultiplier);
     }

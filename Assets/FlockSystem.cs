@@ -12,47 +12,115 @@ public partial struct FlockSystem : ISystem
 {
     //private FlockAgentOcttree _octree;
 
+    private ObstacleAvoidanceRays OARays;
+
+    private EntityQuery query;
+    private NativeArray<Entity> entities;
+    private NativeArray<RefRO<LocalTransform>> transforms;
+    private NativeArray<RefRO<AgentMovement>> movementComponents;
+    private NativeArray<RefRO<AgentSight>> sightComponents;
+    private NativeArray<bool> contextMask;
+
+    ComponentLookup<LocalTransform> transformLookup;
+    ComponentLookup<AgentMovement> movementLookup;
+    ComponentLookup<AgentSight> sightLookup;
+
+
+    private bool firstUpdateDone;
+
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<AgentMovement>();
+        //state.RequireForUpdate<AgentMovement>();
+        OARays = new ObstacleAvoidanceRays(45);
+        //query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>() ,ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
+        
+        
+        firstUpdateDone = false;
     }
 
     public void OnUpdate(ref SystemState state) 
     {
+        if (!firstUpdateDone)
+        {
+            query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
+            entities = query.ToEntityArray(Allocator.Persistent);
+            //Debug.Log(entities.Length);
+            transforms = new NativeArray<RefRO<LocalTransform>>(entities.Length, Allocator.Persistent);
+            movementComponents = new NativeArray<RefRO<AgentMovement>>(entities.Length, Allocator.Persistent);
+            sightComponents = new NativeArray<RefRO<AgentSight>>(entities.Length, Allocator.Persistent);
+
+            
+            ////movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Persistent);
+            //sightComponents = query.ToComponentDataArray<AgentSight>(Allocator.Temp);
+            //movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Temp);
+            //transforms = query.ToComponentDataArray<LocalTransform>(Allocator.Temp);
+
+            //Debug.Log(contextMask.Length);
+            firstUpdateDone = true;
+            contextMask = new NativeArray<bool>(entities.Length, Allocator.Persistent);
+        }
+
+        transformLookup = state.GetComponentLookup<LocalTransform>();
+        movementLookup = state.GetComponentLookup<AgentMovement>();
+        sightLookup = state.GetComponentLookup<AgentSight>();
+
+        for (int i = 0; i < entities.Length; i++)
+        {
+            transforms[i] = transformLookup.GetRefRO(entities[i]);
+            movementComponents[i] = movementLookup.GetRefRO(entities[i]);
+            sightComponents[i] = sightLookup.GetRefRO(entities[i]);
+            //state.EntityManager.GetComponentDataRW<LocalTransform>(state.SystemHandle);
+        }
+
+
         //FlockAgentOcttree.instance.CreateNewTree();
         //FlockAgentOcttree.
         //EntityQuery query = state.GetEntityQuery(typeof(AgentMovement));
 
 
+        //state.EntityManager.GetComponentData<AgentMovement>(array[0]);
+        //Debug.Log("Array: " + array.Length);
+        //Debug.Log("Context: " + contextMask.Length);
+
         //NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> context = new NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> { [0] =  }
-        foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) entity in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
+        //foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) entity in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
+        for (int i = 0; i < entities.Length; i++)
         {
-
-            foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) other in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
+            //foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) other in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
+            for(int j = 0; j < entities.Length; j++)
             {
-                if(other.Item2.ValueRO.id == entity.Item2.ValueRO.id)
+                if(i == j)
+                {
+                    contextMask[j] = false;
                     continue;
-
-
+                }
+                
+                if (GetSquareMagnitude(transforms[j].ValueRO.Position - transforms[i].ValueRO.Position) > sightComponents[i].ValueRO.sightRadius * sightComponents[i].ValueRO.sightRadius)
+                    contextMask[j] = true;
+                else
+                    contextMask[j] = false;
             }
 
-            entity.Item1.ValueRW = entity.Item1.ValueRO.Translate(entity.Item2.ValueRO.velocity * SystemAPI.Time.DeltaTime);
+            CalculateVelocity(i, ref state);
+
+            LocalTransform newTransform = new LocalTransform() { Rotation = Quaternion.LookRotation(movementComponents[i].ValueRO.velocity), Position = transforms[i].ValueRO.Position, Scale = transforms[i].ValueRO.Scale };
+            state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
+            
         }
+
+        //entities.Dispose();
+        //contextMask.Dispose();
+        //
+        //transforms.Dispose();
+        //movementComponents.Dispose();
+        //sightComponents.Dispose();
+
     }
 
-    public void CalculateVelocity((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) entity, NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> context, ref SystemState state)
+    public void CalculateVelocity(int index, ref SystemState state)
     {
         float deltaTime = SystemAPI.Time.DeltaTime;
-        float3 force = new float3();
-
-        //if (_debugAgent)
-        //{
-        //    neighbours.Clear();
-        //    for (int i = 0; i < context.Count; i++)
-        //    {
-        //        neighbours.Add(context[i]);
-        //    }
-        //}
+        float3 force = float3.zero;
 
 
         //for (int i = 0; i < behaviourCount; i++)
@@ -60,49 +128,62 @@ public partial struct FlockSystem : ISystem
         //    force += behaviours[i].behaviour.CalculateMovement(this, context, behaviours[i].forceMultiplier) * (behaviours[i].weight * weightMultiplier);
         //}
 
-        force += CohesionBehaviour.CalculateEntityMovement(entity.Item1.ValueRO.Position, context, 5);
+        //force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5, ref state);
+        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
+        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10, ref state);
+        //force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100, ref state);
 
-
+        //Debug.Log(force);
+        //Velocity is fucked up here somewhere...-
         force = force * deltaTime;
-        float3 newVelocity = new float3();
+        float3 newVelocity = float3.zero;
+        newVelocity = movementComponents[index].ValueRO.velocity + force;
 
-        //if (_debugAgent)
-        //{
-        //    //Debug.DrawRay(position, force, Color.cyan, .02f);
-        //    //Debug.DrawRay(position, newVelocity, Color.blue, .02f);
-        //}
 
-        float squaredMaxSpeed = entity.Item2.ValueRO.maxSpeed * entity.Item2.ValueRO.maxSpeed;
-        
-        if (GetSquareMagnitude(newVelocity) > squaredMaxSpeed && GetSquareMagnitude(newVelocity) > GetSquareMagnitude(entity.Item2.ValueRO.velocity))
-            newVelocity = NormalizedFloat3(newVelocity) * (GetMagnitude(entity.Item2.ValueRO.velocity) - (entity.Item2.ValueRO.deceleration * deltaTime));
+        float squaredMaxSpeed = movementComponents[index].ValueRO.maxSpeed * movementComponents[index].ValueRO.maxSpeed;
+        float squareMagnitudeNewVel = GetSquareMagnitude(newVelocity);
 
-        entity.Item2.ValueRW.velocity = newVelocity;
+        //newVelocity = NormalizedFloat3(newVelocity) * movementComponents[index].ValueRO.maxSpeed;
+
+        if (squareMagnitudeNewVel > squaredMaxSpeed && squareMagnitudeNewVel > GetSquareMagnitude(movementComponents[index].ValueRO.velocity))
+            newVelocity = NormalizedFloat3(newVelocity) * (GetMagnitude(movementComponents[index].ValueRO.velocity) - (movementComponents[index].ValueRO.deceleration * deltaTime));
 
         //acceleration
-        if (GetSquareMagnitude(entity.Item2.ValueRO.velocity) < squaredMaxSpeed)
-            entity.Item2.ValueRW.velocity += NormalizedFloat3(entity.Item2.ValueRO.velocity) * (entity.Item2.ValueRO.acceleration * deltaTime);
+        if (GetSquareMagnitude(newVelocity) < squaredMaxSpeed)
+            newVelocity += NormalizedFloat3(newVelocity) * (movementComponents[index].ValueRO.acceleration * deltaTime);
+
+
+        state.EntityManager.SetComponentData<AgentMovement>(entities[index], movementComponents[index].ValueRO.SetVelocity(newVelocity));
+        //Debug.Log(movementComponents[index].ValueRO.velocity);
+
+
     }
 
 
     public void OnDestroy(ref SystemState state) 
     {
-    
+        Debug.Log("DESTROYEEDE");
+        entities.Dispose();
+        contextMask.Dispose();
+
+        transforms.Dispose();
+        movementComponents.Dispose();
+        sightComponents.Dispose();
     }
 
 
 
-    public float GetSquareMagnitude(float3 v)
+    public static float GetSquareMagnitude(float3 v)
     {
         return (v.x * v.x) + (v.y * v.y) + (v.z * v.z);
     }
 
-    public float GetMagnitude(float3 v)
+    public static float GetMagnitude(float3 v)
     {
         return Mathf.Sqrt((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
     }
 
-    public float3 NormalizedFloat3(float3 v)
+    public static float3 NormalizedFloat3(float3 v)
     {
         return v/GetMagnitude(v);
     }

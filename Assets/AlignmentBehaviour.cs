@@ -1,6 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Transforms;
 
 [CreateAssetMenu]
 public class AlignmentBehaviour : SteeringBehaviour
@@ -23,6 +27,34 @@ public class AlignmentBehaviour : SteeringBehaviour
         averageVelocity /= contextCount;
         averageVelocity -= agentToMove.velocity;
         averageVelocity *= _alignmentForce * forceMultiplier;
+
+        return averageVelocity;
+    }
+
+    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeArray<RefRO<AgentMovement>> context, NativeArray<bool> contextMask, float forceMultiplier, ref SystemState state)
+    {
+        int contextCount = context.Length;
+        if (contextCount == 0)
+            return float3.zero;
+
+        int checkedContextCount = 0;
+        float3 averageVelocity = float3.zero;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            if (contextMask[i])
+            {
+                averageVelocity += context[i].ValueRO.velocity;
+                checkedContextCount++;
+            }
+        }
+
+        averageVelocity /= Mathf.Max(checkedContextCount, 1);
+        averageVelocity -= agentMovement.velocity;
+        averageVelocity *= forceMultiplier;
+
+        //context.Dispose();
+        //contextMask.Dispose();
 
         return averageVelocity;
     }
