@@ -49,6 +49,9 @@ public class AlignmentBehaviour : SteeringBehaviour
             }
         }
 
+        if (checkedContextCount == 0)
+            return float3.zero;
+
         averageVelocity /= Mathf.Max(checkedContextCount, 1);
         averageVelocity -= agentMovement.velocity;
         averageVelocity *= forceMultiplier;

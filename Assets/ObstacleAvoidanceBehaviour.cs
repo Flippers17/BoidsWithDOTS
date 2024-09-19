@@ -209,4 +209,9 @@ public struct ObstacleAvoidanceRays
         }
         
     }
+
+    public void Dispose()
+    {
+        avoidanceRaysDirections.Dispose();
+    }
 }

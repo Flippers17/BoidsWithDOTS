@@ -37,9 +37,9 @@ public class CohesionBehaviour : SteeringBehaviour
         int contextCount = context.Length;
 
         if (contextCount == 0)
-            return Vector3.zero;
+            return float3.zero;
 
-        float3 averagePosition = Vector3.zero;
+        float3 averagePosition = float3.zero;
         int checkedCount = 0;
 
         for (int i = 0; i < contextCount; i++)
@@ -51,7 +51,10 @@ public class CohesionBehaviour : SteeringBehaviour
             }
         }
 
-        averagePosition /= Mathf.Max(checkedCount, 1);
+        if (checkedCount == 0)
+            return float3.zero;
+
+        averagePosition /= checkedCount;
 
         //context.Dispose();
         //contextMask.Dispose();

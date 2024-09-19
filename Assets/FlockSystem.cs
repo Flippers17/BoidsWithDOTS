@@ -55,9 +55,9 @@ public partial struct FlockSystem : ISystem
             //movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Temp);
             //transforms = query.ToComponentDataArray<LocalTransform>(Allocator.Temp);
 
+            contextMask = new NativeArray<bool>(entities.Length, Allocator.Persistent);
             //Debug.Log(contextMask.Length);
             firstUpdateDone = true;
-            contextMask = new NativeArray<bool>(entities.Length, Allocator.Persistent);
         }
 
         transformLookup = state.GetComponentLookup<LocalTransform>();
@@ -95,7 +95,7 @@ public partial struct FlockSystem : ISystem
                     continue;
                 }
                 
-                if (GetSquareMagnitude(transforms[j].ValueRO.Position - transforms[i].ValueRO.Position) > sightComponents[i].ValueRO.sightRadius * sightComponents[i].ValueRO.sightRadius)
+                if (GetSquareMagnitude(transforms[j].ValueRO.Position - transforms[i].ValueRO.Position) < sightComponents[i].ValueRO.sightRadius * sightComponents[i].ValueRO.sightRadius)
                     contextMask[j] = true;
                 else
                     contextMask[j] = false;
@@ -127,11 +127,12 @@ public partial struct FlockSystem : ISystem
         //{
         //    force += behaviours[i].behaviour.CalculateMovement(this, context, behaviours[i].forceMultiplier) * (behaviours[i].weight * weightMultiplier);
         //}
-
-        //force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5, ref state);
+        
+        //When all are active, they seem to be drawn towards 0, 0, 0 .
+        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5, ref state);
         force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
         force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10, ref state);
-        //force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100, ref state);
+        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100, ref state);
 
         //Debug.Log(force);
         //Velocity is fucked up here somewhere...-
@@ -169,6 +170,8 @@ public partial struct FlockSystem : ISystem
         transforms.Dispose();
         movementComponents.Dispose();
         sightComponents.Dispose();
+
+        OARays.Dispose();
     }
 
 
