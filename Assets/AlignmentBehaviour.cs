@@ -61,4 +61,29 @@ public class AlignmentBehaviour : SteeringBehaviour
 
         return averageVelocity;
     }
+
+
+    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeList<Entity> context, float forceMultiplier, ref SystemState state)
+    {
+        int contextCount = context.Length;
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 averageVelocity = float3.zero;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            averageVelocity += state.EntityManager.GetComponentData<AgentMovement>(context[i]).velocity;
+        }
+
+
+        averageVelocity /= contextCount;
+        averageVelocity -= agentMovement.velocity;
+        averageVelocity *= forceMultiplier;
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        return averageVelocity;
+    }
 }

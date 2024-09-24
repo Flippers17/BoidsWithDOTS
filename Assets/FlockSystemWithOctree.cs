@@ -8,18 +8,20 @@ using Unity.Transforms;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public partial struct FlockSystem : ISystem
+public partial struct FlockSystemWithOctree : ISystem
 {
     //private FlockAgentOcttree _octree;
+    private EntityOctree _octree;
 
     private ObstacleAvoidanceRays OARays;
 
     private EntityQuery query;
     private NativeArray<Entity> entities;
+
+    //These should be NativeHashMaps
     private NativeArray<RefRO<LocalTransform>> transforms;
     private NativeArray<RefRO<AgentMovement>> movementComponents;
     private NativeArray<RefRO<AgentSight>> sightComponents;
-    private NativeArray<bool> contextMask;
 
     ComponentLookup<LocalTransform> transformLookup;
     ComponentLookup<AgentMovement> movementLookup;
@@ -30,18 +32,14 @@ public partial struct FlockSystem : ISystem
 
     public void OnCreate(ref SystemState state)
     {
-        return;
-        //state.RequireForUpdate<AgentMovement>();
         OARays = new ObstacleAvoidanceRays(45);
-        //query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>() ,ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
-        
-        
+
+
         firstUpdateDone = false;
     }
 
-    public void OnUpdate(ref SystemState state) 
+    public void OnUpdate(ref SystemState state)
     {
-        return;
         if (!firstUpdateDone)
         {
             query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
@@ -51,13 +49,6 @@ public partial struct FlockSystem : ISystem
             movementComponents = new NativeArray<RefRO<AgentMovement>>(entities.Length, Allocator.Persistent);
             sightComponents = new NativeArray<RefRO<AgentSight>>(entities.Length, Allocator.Persistent);
 
-            
-            ////movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Persistent);
-            //sightComponents = query.ToComponentDataArray<AgentSight>(Allocator.Temp);
-            //movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Temp);
-            //transforms = query.ToComponentDataArray<LocalTransform>(Allocator.Temp);
-
-            contextMask = new NativeArray<bool>(entities.Length, Allocator.Persistent);
             //Debug.Log(contextMask.Length);
             firstUpdateDone = true;
         }
@@ -71,44 +62,33 @@ public partial struct FlockSystem : ISystem
             transforms[i] = transformLookup.GetRefRO(entities[i]);
             movementComponents[i] = movementLookup.GetRefRO(entities[i]);
             sightComponents[i] = sightLookup.GetRefRO(entities[i]);
-            //state.EntityManager.GetComponentDataRW<LocalTransform>(state.SystemHandle);
         }
 
-        //FlockAgentOcttree.instance.CreateNewTree();
-        //FlockAgentOcttree.
-        //EntityQuery query = state.GetEntityQuery(typeof(AgentMovement));
+
+        _octree = new EntityOctree(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
+        //Insertion seems to work, based on drawing the nodes as gizmos in the scene view
+        for (int i = 0; i < entities.Length; ++i)
+        {
+            _octree.InsertPointToTree(entities[i], transforms[i].ValueRO.Position);
+        }
 
 
-        //state.EntityManager.GetComponentData<AgentMovement>(array[0]);
-        //Debug.Log("Array: " + array.Length);
-        //Debug.Log("Context: " + contextMask.Length);
-
-        //NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> context = new NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> { [0] =  }
-        //foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) entity in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
         for (int i = 0; i < entities.Length; i++)
         {
-            ////foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) other in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
-            for (int j = 0; j < entities.Length; j++)
-            {
-                if (i == j)
-                {
-                    contextMask[j] = false;
-                    continue;
-                }
 
-                if (GetSquareMagnitude(transforms[j].ValueRO.Position - transforms[i].ValueRO.Position) < sightComponents[i].ValueRO.sightRadius * sightComponents[i].ValueRO.sightRadius)
-                    contextMask[j] = true;
-                else
-                    contextMask[j] = false;
-            }
-
-            CalculateVelocity(i, ref state);
+            NativeList<Entity> context = new NativeList<Entity>(16, Allocator.Temp);
+            _octree.FindNeighbouringAgents(transforms[i].ValueRO.Position, ref context);
+            CalculateVelocity(i, ref state, context);
 
             LocalTransform newTransform = new LocalTransform() { Rotation = Quaternion.LookRotation(movementComponents[i].ValueRO.velocity), Position = transforms[i].ValueRO.Position, Scale = transforms[i].ValueRO.Scale };
             state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
-            
+
         }
 
+        
+        //EntityOctreeGizmos.nodes = _octree.GetNodes().ToList();
+
+        _octree.Dispose();
         //entities.Dispose();
         //contextMask.Dispose();
         //
@@ -118,7 +98,7 @@ public partial struct FlockSystem : ISystem
 
     }
 
-    public void CalculateVelocity(int index, ref SystemState state)
+    public void CalculateVelocity(int index, ref SystemState state, NativeList<Entity> context)
     {
         float deltaTime = SystemAPI.Time.DeltaTime;
         float3 force = float3.zero;
@@ -128,14 +108,15 @@ public partial struct FlockSystem : ISystem
         //{
         //    force += behaviours[i].behaviour.CalculateMovement(this, context, behaviours[i].forceMultiplier) * (behaviours[i].weight * weightMultiplier);
         //}
-        
-        //When all are active, they seem to be drawn towards 0, 0, 0 .
-        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5, ref state);
-        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
-        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10, ref state);
-        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100, ref state);
 
-        //Debug.Log(force);
+        //When all are active, they seem to be drawn towards 0, 0, 0 .
+        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, context, 5, ref state);
+        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
+        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, context, 10, ref state);
+        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, context, 100, ref state);
+
+        //if(index == 0)
+        //    Debug.Log(force);
         //Velocity is fucked up here somewhere...-
         force = force * deltaTime;
         float3 newVelocity = float3.zero;
@@ -158,16 +139,20 @@ public partial struct FlockSystem : ISystem
         state.EntityManager.SetComponentData<AgentMovement>(entities[index], movementComponents[index].ValueRO.SetVelocity(newVelocity));
         //Debug.Log(movementComponents[index].ValueRO.velocity);
 
+        //if (index == 0)
+        //    Debug.Log(context.Length);
+
+        context.Dispose();
+
+        
 
     }
 
 
-    public void OnDestroy(ref SystemState state) 
+    public void OnDestroy(ref SystemState state)
     {
-        return;
         Debug.Log("DESTROYEEDE");
         entities.Dispose();
-        contextMask.Dispose();
 
         transforms.Dispose();
         movementComponents.Dispose();
@@ -190,6 +175,6 @@ public partial struct FlockSystem : ISystem
 
     public static float3 NormalizedFloat3(float3 v)
     {
-        return v/GetMagnitude(v);
+        return v / GetMagnitude(v);
     }
 }

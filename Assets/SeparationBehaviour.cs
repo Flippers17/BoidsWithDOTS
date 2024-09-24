@@ -78,4 +78,37 @@ public class SeparationBehaviour : SteeringBehaviour
         separationVector /= Mathf.Max(checkedCount, 1);
         return separationVector;
     }
+
+
+
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeList<Entity> context, float forceMultiplier, ref SystemState state)
+    {
+        int contextCount = context.Length;
+
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 separationVector = float3.zero;
+
+        float3 currentVector;
+
+        float squaredProtectedRange = 9;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            currentVector = (state.EntityManager.GetComponentData<LocalTransform>(context[i]).Position - agentToMove);
+
+            float currentSquareMagnitude = FlockSystem.GetSquareMagnitude(currentVector);
+            if (currentSquareMagnitude < squaredProtectedRange)
+            {
+                separationVector -= currentVector * (forceMultiplier / Mathf.Max(currentSquareMagnitude, .1f));
+            }
+        }
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        separationVector /= contextCount;
+        return separationVector;
+    }
 }

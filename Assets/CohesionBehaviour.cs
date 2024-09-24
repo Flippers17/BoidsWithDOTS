@@ -61,4 +61,27 @@ public class CohesionBehaviour : SteeringBehaviour
 
         return (averagePosition - agentToMove) * (forceMultiplier);
     }
+
+
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeList<Entity> context, float forceMultiplier, ref SystemState state)
+    {
+        int contextCount = context.Length;
+
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 averagePosition = float3.zero;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            averagePosition += state.EntityManager.GetComponentData<LocalTransform>(context[i]).Position;
+        }
+
+        averagePosition /= contextCount;
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        return (averagePosition - agentToMove) * (forceMultiplier);
+    }
 }

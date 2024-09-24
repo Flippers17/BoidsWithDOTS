@@ -45,7 +45,7 @@ public class FlockAgent : MonoBehaviour
     private void OnEnable()
     {
         thisTransform = transform;
-        thisTransform.rotation = Quaternion.Euler(Random.Range(0.0f, 180f), Random.Range(0.0f, 180f), Random.Range(0.0f, 180f));
+        //thisTransform.rotation = Quaternion.Euler(Random.Range(0.0f, 180f), Random.Range(0.0f, 180f), Random.Range(0.0f, 180f));
         velocity = thisTransform.forward * _maxSpeed;
         position = thisTransform.position;
     }
