@@ -77,22 +77,11 @@ public partial struct FlockSystemWithOctree : ISystem
         for (int i = 0; i < entities.Length; i++)
         {
 
-            NativeList<int> preliminaryContext = new NativeList<int>(16, Allocator.Temp);
-            _octree.FindNeighbouringAgents(entities[i].Index, transforms[i].ValueRO.Position, ref preliminaryContext);
-            NativeList<int> finalContext = new NativeList<int>(16, Allocator.Temp);
+            NativeList<int> context = new NativeList<int>(16, Allocator.Temp);
+            _octree.FindNeighbouringAgents(entities[i].Index, sightComponents[i].ValueRO.sightRadius, transforms[i].ValueRO.Position, ref context);
+            
 
-            float sqrSight = sightComponents[i].ValueRO.sightRadius;
-            sqrSight *= sqrSight;
-            for (int j = 0; j < preliminaryContext.Length; ++j)
-            {
-                float sqrDistance = GetSquareMagnitude(transforms[i].ValueRO.Position - transforms[preliminaryContext[j]].ValueRO.Position);
-                if (sqrDistance < sqrSight)
-                {
-                    finalContext.Add(preliminaryContext[j]);
-                }
-            }
-
-            CalculateVelocity(i, ref state, finalContext);
+            CalculateVelocity(i, ref state, context);
 
             LocalTransform newTransform = new LocalTransform() { Rotation = Quaternion.LookRotation(movementComponents[i].ValueRO.velocity), Position = transforms[i].ValueRO.Position, Scale = transforms[i].ValueRO.Scale };
             state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
@@ -125,7 +114,7 @@ public partial struct FlockSystemWithOctree : ISystem
 
         //When all are active, they seem to be drawn towards 0, 0, 0 .
         force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, context, 5, ref state);
-        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 100, ref state, OARays);
+        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
         force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, context, 10, ref state);
         force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, context, 1000, ref state);
         force += TargetSteeringBehaviour.CalculateEntityMovement(float3.zero, transforms[index].ValueRO.Position, .1f);

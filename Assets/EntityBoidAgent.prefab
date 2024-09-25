@@ -50,12 +50,12 @@ MonoBehaviour:
   position: {x: 0, y: 0, z: 0}
   forward: {x: 0, y: 0, z: 1}
   velocity: {x: 0, y: 0, z: 0}
-  _maxSpeed: 15
+  _maxSpeed: 25
   _deceleration: 5
   _acceleration: 10
-  sightRadius: 7
-  viewAngle: 180
-  viewAngleCos: -0.5984601
+  sightRadius: 12
+  viewAngle: 160
+  viewAngleCos: -0.9756293
   avoidanceMask:
     serializedVersion: 2
     m_Bits: 64

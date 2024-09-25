@@ -132,9 +132,9 @@ public struct EntityOctree
     }
 
 
-    public void FindNeighbouringAgents(int entityID, float3 point, ref NativeList<int> neighbours)
+    public void FindNeighbouringAgents(int entityID, float agentSightRadius, float3 point, ref NativeList<int> neighbours)
     {
-        int nodeIndex = FindNeighbouringAgentsFromTop(entityID, point, ref neighbours);
+        int nodeIndex = FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, point, ref neighbours);
 
         if(nodeIndex == -1)
         {
@@ -147,31 +147,31 @@ public struct EntityOctree
         float3 parentHalfSize = parent._halfSize;
 
         float3 currentPos = parentCenter + new float3(parentHalfSize.x + .1f, 0, 0);
-        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+        FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, currentPos, ref neighbours);
 
         currentPos = parentCenter + new float3(-(parentHalfSize.x + .1f), 0, 0);
-        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+        FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, currentPos, ref neighbours);
 
         currentPos = parentCenter + new float3(0, (parentHalfSize.y + .1f), 0);
-        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+        FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, currentPos, ref neighbours);
 
         currentPos = parentCenter + new float3(0, -(parentHalfSize.y + .1f), 0);
-        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+        FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, currentPos, ref neighbours);
 
         currentPos = parentCenter + new float3(0, 0, parentHalfSize.z + .1f);
-        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+        FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, currentPos, ref neighbours);
 
         currentPos = parentCenter + new float3(0, 0, -(parentHalfSize.z + .1f));
-        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+        FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, currentPos, ref neighbours);
     }
 
-    private int FindNeighbouringAgentsFromTop(int entityIndex, float3 point, ref NativeList<int> neighbours)
+    private int FindNeighbouringAgentsFromTop(int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<int> neighbours)
     {
         int nodeIndex = -1;
 
         for (int i = 0; i < 8; i++)
         {
-            nodeIndex = FindNeighbouringAgentsInNode(i, entityIndex, point, ref neighbours);
+            nodeIndex = FindNeighbouringAgentsInNode(i, entityIndex, agentSightRadius, agentPos, point, ref neighbours);
             if (nodeIndex != -1)
                 return nodeIndex;
         }
@@ -179,7 +179,7 @@ public struct EntityOctree
         return -1;
     }
 
-    private int FindNeighbouringAgentsInNode(int index, int entityIndex, float3 point, ref NativeList<int> neighbours)
+    private int FindNeighbouringAgentsInNode(int index, int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<int> neighbours)
     {
         if (!_nodes[index].ContainsPoint(point))
             return -1;
@@ -189,14 +189,15 @@ public struct EntityOctree
         {
             for(int i = childredIndexStart; i < childredIndexStart + 8; i++)
             {
-                if (FindNeighbouringAgentsInNode(i, entityIndex, point, ref neighbours) != -1)
+                if (FindNeighbouringAgentsInNode(i, entityIndex, agentSightRadius, agentPos, point, ref neighbours) != -1)
                     return i;
             }
         }
 
+        float sqrSightRadius = agentSightRadius * agentSightRadius;
         foreach ((int, float3) entity in _objects.GetValuesForKey(index))
         {
-            if(entity.Item1 != entityIndex)
+            if(entity.Item1 != entityIndex && FlockSystem.GetSquareMagnitude(agentPos - entity.Item2) < sqrSightRadius)
                 neighbours.Add(entity.Item1);
         }
 
