@@ -81,7 +81,7 @@ public class SeparationBehaviour : SteeringBehaviour
 
 
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeList<Entity> context, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> transforms, NativeList<int> context, float forceMultiplier, ref SystemState state)
     {
         int contextCount = context.Length;
 
@@ -96,7 +96,7 @@ public class SeparationBehaviour : SteeringBehaviour
 
         for (int i = 0; i < contextCount; i++)
         {
-            currentVector = (state.EntityManager.GetComponentData<LocalTransform>(context[i]).Position - agentToMove);
+            currentVector = (transforms[context[i]].ValueRO.Position - agentToMove);
 
             float currentSquareMagnitude = FlockSystem.GetSquareMagnitude(currentVector);
             if (currentSquareMagnitude < squaredProtectedRange)

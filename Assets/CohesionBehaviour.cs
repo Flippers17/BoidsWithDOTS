@@ -63,7 +63,7 @@ public class CohesionBehaviour : SteeringBehaviour
     }
 
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeList<Entity> context, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> transforms, NativeList<int> context, float forceMultiplier, ref SystemState state)
     {
         int contextCount = context.Length;
 
@@ -74,7 +74,7 @@ public class CohesionBehaviour : SteeringBehaviour
 
         for (int i = 0; i < contextCount; i++)
         {
-            averagePosition += state.EntityManager.GetComponentData<LocalTransform>(context[i]).Position;
+            averagePosition += transforms[context[i]].ValueRO.Position;
         }
 
         averagePosition /= contextCount;

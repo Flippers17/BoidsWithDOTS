@@ -53,7 +53,7 @@ MonoBehaviour:
   _maxSpeed: 15
   _deceleration: 5
   _acceleration: 10
-  sightRadius: 12
+  sightRadius: 7
   viewAngle: 180
   viewAngleCos: -0.5984601
   avoidanceMask:

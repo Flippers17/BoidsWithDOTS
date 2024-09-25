@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public struct EntityOctree
@@ -16,7 +17,7 @@ public struct EntityOctree
     NativeArray<EntityOctreeNode> _nodes;
     NativeArray<int> _childNodesIndex;
     //Stores the objects. The key is for the node ID and the values are the entities inside that node
-    NativeParallelMultiHashMap<int, (Entity, float3)> _objects;
+    NativeParallelMultiHashMap<int, (int, float3)> _objects;
 
     private Bounds _bounds;
     private float3 _halfSize;
@@ -57,17 +58,17 @@ public struct EntityOctree
         _nodesSize = 8;
         
 
-        _objects = new NativeParallelMultiHashMap<int, (Entity, float3)>(16, Allocator.Persistent);
+        _objects = new NativeParallelMultiHashMap<int, (int, float3)>(16, Allocator.Persistent);
     }
 
     //Starts the process of inserting a point into the tree
-    public void InsertPointToTree(Entity e, float3 point)
+    public void InsertPointToTree(int e, float3 point)
     {
         TryInsertInNodes(0, e, point, 1);
     }
 
     //Checks all childnodes of a parent node and recursively goes down levels if the node containg the point is also divided. If not, it is inserted in that node.
-    private void TryInsertInNodes(int startIndex, Entity e, float3 point, int currentLevel)
+    private void TryInsertInNodes(int startIndex, int e, float3 point, int currentLevel)
     {
         for(int i =  startIndex; i < startIndex + 8; i++)
         {
@@ -84,7 +85,7 @@ public struct EntityOctree
     }
 
 
-    private void InsertInNode(Entity e, float3 point, int index, int currentLevel)
+    private void InsertInNode(int e, float3 point, int index, int currentLevel)
     {
         _objects.Add(index, (e, point));
 
@@ -131,37 +132,46 @@ public struct EntityOctree
     }
 
 
-    public void FindNeighbouringAgents(float3 point, ref NativeList<Entity> neighbours)
+    public void FindNeighbouringAgents(int entityID, float3 point, ref NativeList<int> neighbours)
     {
-        int nodeIndex = FindNeighbouringAgentsFromTop(point, ref neighbours);
+        int nodeIndex = FindNeighbouringAgentsFromTop(entityID, point, ref neighbours);
 
+        if(nodeIndex == -1)
+        {
+            //Debug.Log(point + "Does not exist in tree");
+            return;
+        }
 
-        float3 currentPos = (float3)_nodes[nodeIndex]._bounds.center + new float3(_nodes[nodeIndex]._halfSize.x + .1f, 0, 0);
-        FindNeighbouringAgentsFromTop(currentPos, ref neighbours);
+        EntityOctreeNode parent = _nodes[nodeIndex];
+        float3 parentCenter = parent._bounds.center;
+        float3 parentHalfSize = parent._halfSize;
 
-        currentPos = (float3)_nodes[nodeIndex]._bounds.center + new float3(-(_nodes[nodeIndex]._halfSize.x + .1f), 0, 0);
-        FindNeighbouringAgentsFromTop(currentPos, ref neighbours);
+        float3 currentPos = parentCenter + new float3(parentHalfSize.x + .1f, 0, 0);
+        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
 
-        currentPos = (float3)_nodes[nodeIndex]._bounds.center + new float3(0, (_nodes[nodeIndex]._halfSize.y + .1f), 0);
-        FindNeighbouringAgentsFromTop(currentPos, ref neighbours);
+        currentPos = parentCenter + new float3(-(parentHalfSize.x + .1f), 0, 0);
+        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
 
-        currentPos = (float3)_nodes[nodeIndex]._bounds.center + new float3(0, -(_nodes[nodeIndex]._halfSize.y + .1f), 0);
-        FindNeighbouringAgentsFromTop(currentPos, ref neighbours);
+        currentPos = parentCenter + new float3(0, (parentHalfSize.y + .1f), 0);
+        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
 
-        currentPos = (float3)_nodes[nodeIndex]._bounds.center + new float3(0, 0, _nodes[nodeIndex]._halfSize.z + .1f);
-        FindNeighbouringAgentsFromTop(currentPos, ref neighbours);
+        currentPos = parentCenter + new float3(0, -(parentHalfSize.y + .1f), 0);
+        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
 
-        currentPos = (float3)_nodes[nodeIndex]._bounds.center + new float3(0, 0, -(_nodes[nodeIndex]._halfSize.z + .1f));
-        FindNeighbouringAgentsFromTop(currentPos, ref neighbours);
+        currentPos = parentCenter + new float3(0, 0, parentHalfSize.z + .1f);
+        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
+
+        currentPos = parentCenter + new float3(0, 0, -(parentHalfSize.z + .1f));
+        FindNeighbouringAgentsFromTop(entityID, currentPos, ref neighbours);
     }
 
-    private int FindNeighbouringAgentsFromTop(float3 point, ref NativeList<Entity> neighbours)
+    private int FindNeighbouringAgentsFromTop(int entityIndex, float3 point, ref NativeList<int> neighbours)
     {
         int nodeIndex = -1;
 
         for (int i = 0; i < 8; i++)
         {
-            nodeIndex = FindNeighbouringAgentsInNode(i, point, ref neighbours);
+            nodeIndex = FindNeighbouringAgentsInNode(i, entityIndex, point, ref neighbours);
             if (nodeIndex != -1)
                 return nodeIndex;
         }
@@ -169,33 +179,26 @@ public struct EntityOctree
         return -1;
     }
 
-    private int FindNeighbouringAgentsInNode(int index, float3 point, ref NativeList<Entity> neighbours)
+    private int FindNeighbouringAgentsInNode(int index, int entityIndex, float3 point, ref NativeList<int> neighbours)
     {
         if (!_nodes[index].ContainsPoint(point))
             return -1;
 
-        if (_childNodesIndex[index] != -1)
+        int childredIndexStart = _childNodesIndex[index];
+        if (childredIndexStart != -1)
         {
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index], point, ref neighbours) != -1)
-                return _childNodesIndex[index];
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 1, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 1;
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 2, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 2;
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 3, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 3;
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 4, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 4;
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 5, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 5;
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 6, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 6;
-            if (FindNeighbouringAgentsInNode(_childNodesIndex[index] + 7, point, ref neighbours) != -1)
-                return _childNodesIndex[index] + 7;
+            for(int i = childredIndexStart; i < childredIndexStart + 8; i++)
+            {
+                if (FindNeighbouringAgentsInNode(i, entityIndex, point, ref neighbours) != -1)
+                    return i;
+            }
         }
 
-        foreach ((Entity, float3) entity in _objects.GetValuesForKey(index))
-            neighbours.Add(entity.Item1);
+        foreach ((int, float3) entity in _objects.GetValuesForKey(index))
+        {
+            if(entity.Item1 != entityIndex)
+                neighbours.Add(entity.Item1);
+        }
 
         return index;
     }
@@ -206,6 +209,27 @@ public struct EntityOctree
         return _nodes;
     }
 
+
+    public void ClearTree()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            _childNodesIndex[i] = -1;
+        }
+
+        _nodes[0] = new EntityOctreeNode(new Bounds((float3)_bounds.center - _quarterSize, _halfSize), 1);
+        _nodes[1] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(_quarterSize.x, -_quarterSize.y, -_quarterSize.z), _halfSize), 1);
+        _nodes[2] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(-_quarterSize.x, _quarterSize.y, -_quarterSize.z), _halfSize), 1);
+        _nodes[3] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(_quarterSize.x, _quarterSize.y, -_quarterSize.z), _halfSize), 1);
+        _nodes[4] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(-_quarterSize.x, -_quarterSize.y, _quarterSize.z), _halfSize), 1);
+        _nodes[5] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(_quarterSize.x, -_quarterSize.y, _quarterSize.z), _halfSize), 1);
+        _nodes[6] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(-_quarterSize.x, _quarterSize.y, _quarterSize.z), _halfSize), 1);
+        _nodes[7] = new EntityOctreeNode(new Bounds(_bounds.center + new Vector3(_quarterSize.x, _quarterSize.y, _quarterSize.z), _halfSize), 1);
+        _nodesSize = 8;
+
+
+        _objects = new NativeParallelMultiHashMap<int, (int, float3)>(16, Allocator.Persistent);
+    }
 
     public void Dispose()
     {

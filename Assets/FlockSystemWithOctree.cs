@@ -33,7 +33,7 @@ public partial struct FlockSystemWithOctree : ISystem
     public void OnCreate(ref SystemState state)
     {
         OARays = new ObstacleAvoidanceRays(45);
-
+        _octree = new EntityOctree(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
 
         firstUpdateDone = false;
     }
@@ -65,20 +65,34 @@ public partial struct FlockSystemWithOctree : ISystem
         }
 
 
-        _octree = new EntityOctree(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
+        //_octree = new EntityOctree(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
+        _octree.ClearTree();
         //Insertion seems to work, based on drawing the nodes as gizmos in the scene view
         for (int i = 0; i < entities.Length; ++i)
         {
-            _octree.InsertPointToTree(entities[i], transforms[i].ValueRO.Position);
+            _octree.InsertPointToTree(i, transforms[i].ValueRO.Position);
         }
 
 
         for (int i = 0; i < entities.Length; i++)
         {
 
-            NativeList<Entity> context = new NativeList<Entity>(16, Allocator.Temp);
-            _octree.FindNeighbouringAgents(transforms[i].ValueRO.Position, ref context);
-            CalculateVelocity(i, ref state, context);
+            NativeList<int> preliminaryContext = new NativeList<int>(16, Allocator.Temp);
+            _octree.FindNeighbouringAgents(entities[i].Index, transforms[i].ValueRO.Position, ref preliminaryContext);
+            NativeList<int> finalContext = new NativeList<int>(16, Allocator.Temp);
+
+            float sqrSight = sightComponents[i].ValueRO.sightRadius;
+            sqrSight *= sqrSight;
+            for (int j = 0; j < preliminaryContext.Length; ++j)
+            {
+                float sqrDistance = GetSquareMagnitude(transforms[i].ValueRO.Position - transforms[preliminaryContext[j]].ValueRO.Position);
+                if (sqrDistance < sqrSight)
+                {
+                    finalContext.Add(preliminaryContext[j]);
+                }
+            }
+
+            CalculateVelocity(i, ref state, finalContext);
 
             LocalTransform newTransform = new LocalTransform() { Rotation = Quaternion.LookRotation(movementComponents[i].ValueRO.velocity), Position = transforms[i].ValueRO.Position, Scale = transforms[i].ValueRO.Scale };
             state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
@@ -88,7 +102,7 @@ public partial struct FlockSystemWithOctree : ISystem
         
         //EntityOctreeGizmos.nodes = _octree.GetNodes().ToList();
 
-        _octree.Dispose();
+        //_octree.Dispose();
         //entities.Dispose();
         //contextMask.Dispose();
         //
@@ -98,7 +112,7 @@ public partial struct FlockSystemWithOctree : ISystem
 
     }
 
-    public void CalculateVelocity(int index, ref SystemState state, NativeList<Entity> context)
+    public void CalculateVelocity(int index, ref SystemState state, NativeList<int> context)
     {
         float deltaTime = SystemAPI.Time.DeltaTime;
         float3 force = float3.zero;
@@ -110,10 +124,27 @@ public partial struct FlockSystemWithOctree : ISystem
         //}
 
         //When all are active, they seem to be drawn towards 0, 0, 0 .
-        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, context, 5, ref state);
-        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
-        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, context, 10, ref state);
-        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, context, 100, ref state);
+        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, context, 5, ref state);
+        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 100, ref state, OARays);
+        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, context, 10, ref state);
+        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, context, 1000, ref state);
+        force += TargetSteeringBehaviour.CalculateEntityMovement(float3.zero, transforms[index].ValueRO.Position, .1f);
+
+        //NativeArray<bool> contextMask = new NativeArray<bool>(entities.Length, Allocator.Temp);
+        //for (int i = 0;i < entities.Length;i++)
+        //{
+        //    for(int j = 0;j < context.Length; j++)
+        //    {
+        //        if (context[j] == i)
+        //            contextMask[i] = true;
+        //    }
+        //}
+
+        //force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5, ref state);
+        //force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 100, ref state, OARays);
+        //force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10, ref state);
+        //force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 1000, ref state);
+
 
         //if(index == 0)
         //    Debug.Log(force);
@@ -159,6 +190,7 @@ public partial struct FlockSystemWithOctree : ISystem
         sightComponents.Dispose();
 
         OARays.Dispose();
+        _octree.Dispose();
     }
 
 

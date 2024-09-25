@@ -63,7 +63,7 @@ public class AlignmentBehaviour : SteeringBehaviour
     }
 
 
-    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeList<Entity> context, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeArray<RefRO<AgentMovement>> movementComponents, NativeList<int> context, float forceMultiplier, ref SystemState state)
     {
         int contextCount = context.Length;
         if (contextCount == 0)
@@ -73,7 +73,7 @@ public class AlignmentBehaviour : SteeringBehaviour
 
         for (int i = 0; i < contextCount; i++)
         {
-            averageVelocity += state.EntityManager.GetComponentData<AgentMovement>(context[i]).velocity;
+            averageVelocity += movementComponents[context[i]].ValueRO.velocity;
         }
 
 

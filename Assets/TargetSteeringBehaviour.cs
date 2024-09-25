@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
 
 [CreateAssetMenu]
 public class TargetSteeringBehaviour : SteeringBehaviour
@@ -16,5 +17,10 @@ public class TargetSteeringBehaviour : SteeringBehaviour
             return Vector3.zero;
 
         return (Target.position - agentToMove.position) * (targetBias * forceMultiplier);
+    }
+
+    public static float3 CalculateEntityMovement(float3 targetPos, float3 agentPos, float forceMultiplier)
+    {
+        return (targetPos - agentPos) * forceMultiplier;
     }
 }
