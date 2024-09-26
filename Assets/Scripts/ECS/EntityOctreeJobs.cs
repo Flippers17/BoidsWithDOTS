@@ -6,7 +6,7 @@ using Unity.Transforms;
 using UnityEngine;
 using Unity.Burst;
 
-[BurstCompile]
+
 public struct EntityOctreeJobs
 {
     private int _maxLevels;
@@ -69,7 +69,6 @@ public struct EntityOctreeJobs
     }
 
     //Checks all childnodes of a parent node and recursively goes down levels if the node containg the point is also divided. If not, it is inserted in that node.
-    [BurstCompile]
     private void TryInsertInNodes(int startIndex, (int, LocalTransform, AgentMovement) e, float3 point, int currentLevel)
     {
         for (int i = startIndex; i < startIndex + 8; i++)
@@ -87,7 +86,6 @@ public struct EntityOctreeJobs
     }
 
 
-    [BurstCompile]
     private void InsertInNode((int, LocalTransform, AgentMovement) e, int index, int currentLevel)
     {
         _objects.Add(index, e);
@@ -100,7 +98,6 @@ public struct EntityOctreeJobs
     }
 
 
-    [BurstCompile]
     private void SubdivideNode(int nodeIndex)
     {
 
@@ -136,7 +133,6 @@ public struct EntityOctreeJobs
     }
 
 
-    [BurstCompile]
     public void FindNeighbouringAgents(int entityID, float agentSightRadius, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovement)
     {
         int nodeIndex = FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, point, ref nTransforms, ref nMovement);
@@ -172,7 +168,6 @@ public struct EntityOctreeJobs
     }
 
 
-    [BurstCompile]
     private int FindNeighbouringAgentsFromTop(int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovements)
     {
         int nodeIndex = -1;
@@ -187,7 +182,7 @@ public struct EntityOctreeJobs
         return -1;
     }
 
-    [BurstCompile]
+
     private int FindNeighbouringAgentsInNode(int index, int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovement)
     {
         if (!_nodes[index].ContainsPoint(point))
@@ -223,7 +218,7 @@ public struct EntityOctreeJobs
     }
 
 
-    [BurstCompile]
+
     public void ClearTree()
     {
         for (int i = 0; i < 8; i++)
@@ -255,45 +250,3 @@ public struct EntityOctreeJobs
 }
 
 
-
-
-//public struct EntityOctreeNode
-//{
-//    public Bounds _bounds;
-
-//    public float3 _topNorthEastPoint;
-//    public float3 _bottomSouthWestPoint;
-//    public float3 _halfSize;
-//    public float3 _quarterSize;
-
-//    public int level;
-
-//    public EntityOctreeNode(Bounds newBounds, int Level)
-//    {
-//        _bounds = newBounds;
-//        level = Level;
-
-
-//        _halfSize = _bounds.size / 2;
-//        _quarterSize = _halfSize / 2;
-//        _topNorthEastPoint = (float3)_bounds.center + _halfSize;
-//        _bottomSouthWestPoint = (float3)_bounds.center - _halfSize;
-
-//        //Index of -1 means it is not yet divided
-//    }
-
-
-//    public bool ContainsPoint(float3 point)
-//    {
-//        if (point.x > _topNorthEastPoint.x || point.x < _bottomSouthWestPoint.x)
-//            return false;
-
-//        if (point.y > _topNorthEastPoint.y || point.y < _bottomSouthWestPoint.y)
-//            return false;
-
-//        if (point.z > _topNorthEastPoint.z || point.z < _bottomSouthWestPoint.z)
-//            return false;
-
-//        return true;
-//    }
-//}

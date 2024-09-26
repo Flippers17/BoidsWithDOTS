@@ -8,7 +8,8 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
-public partial struct FlockSystemOctreeJobs : ISystem
+[BurstCompile]
+public partial struct FlockSystemOctreeJobsBurst : ISystem
 {
     //private FlockAgentOcttree _octree;
     public EntityOctreeJobs octree;
@@ -21,7 +22,7 @@ public partial struct FlockSystemOctreeJobs : ISystem
     //These should be NativeHashMaps
     public NativeArray<RefRO<LocalTransform>> transforms;
     public NativeArray<RefRO<AgentMovement>> movementComponents;
-    public NativeArray<RefRO<AgentSight>> sightComponents;
+    //public NativeArray<RefRO<AgentSight>> sightComponents;
 
     ComponentLookup<LocalTransform> transformLookup;
     ComponentLookup<AgentMovement> movementLookup;
@@ -37,21 +38,21 @@ public partial struct FlockSystemOctreeJobs : ISystem
         octree = new EntityOctreeJobs(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
 
         firstUpdateDone = false;
+        state.Enabled = false;
     }
 
-    //[BurstCompile]
+    
     public void OnUpdate(ref SystemState state)
     {
         if (!firstUpdateDone)
         {
             query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
             entities = query.ToEntityArray(Allocator.Persistent);
-            //Debug.Log(entities.Length);
+
             transforms = new NativeArray<RefRO<LocalTransform>>(entities.Length, Allocator.Persistent);
             movementComponents = new NativeArray<RefRO<AgentMovement>>(entities.Length, Allocator.Persistent);
-            sightComponents = new NativeArray<RefRO<AgentSight>>(entities.Length, Allocator.Persistent);
+            //sightComponents = new NativeArray<RefRO<AgentSight>>(entities.Length, Allocator.Persistent);
 
-            //Debug.Log(contextMask.Length);
             firstUpdateDone = true;
         }
 
@@ -63,11 +64,10 @@ public partial struct FlockSystemOctreeJobs : ISystem
         {
             transforms[i] = transformLookup.GetRefRO(entities[i]);
             movementComponents[i] = movementLookup.GetRefRO(entities[i]);
-            sightComponents[i] = sightLookup.GetRefRO(entities[i]);
+            //sightComponents[i] = sightLookup.GetRefRO(entities[i]);
         }
 
 
-        //_octree = new EntityOctree(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
         octree.ClearTree();
         //Insertion seems to work, based on drawing the nodes as gizmos in the scene view
         for (int i = 0; i < entities.Length; ++i)
@@ -75,20 +75,6 @@ public partial struct FlockSystemOctreeJobs : ISystem
             octree.InsertPointToTree((i, transforms[i].ValueRO, movementComponents[i].ValueRO), transforms[i].ValueRO.Position);
         }
 
-
-        //for (int i = 0; i < entities.Length; i++)
-        //{
-
-        //    NativeList<int> context = new NativeList<int>(16, Allocator.TempJob);
-        //    octree.FindNeighbouringAgents(entities[i].Index, sightComponents[i].ValueRO.sightRadius, transforms[i].ValueRO.Position, ref context);
-        //    //var searchJob = new FindNeighboursJob { octree = octree, entityIndex = entities[i].Index, entityPos = transforms[i].ValueRO.Position, sightRadius = sightComponents[i].ValueRO.sightRadius };
-        //    //searchJob.Schedule(state.Dependency);
-
-        //    CalculateVelocity(i, ref state, context);
-
-        //    LocalTransform newTransform = new LocalTransform() { Rotation = Quaternion.LookRotation(movementComponents[i].ValueRO.velocity), Position = transforms[i].ValueRO.Position, Scale = transforms[i].ValueRO.Scale };
-        //    state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
-        //}
 
         var entityJob = new CalculateBoidsJob { octree = this.octree, deltaTime = SystemAPI.Time.DeltaTime };
         var handle = entityJob.ScheduleParallel(query, state.Dependency);
@@ -101,28 +87,13 @@ public partial struct FlockSystemOctreeJobs : ISystem
             state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
         }
 
-        //for (int i = 0; i < entities.Length; i++)
-        //{
-        //    NativeList<int> newContext = new NativeList<int>(Allocator.Temp);
-        //    int stopValue = i < entityStartValue.Length ? entityStartValue[i + 1] : entityStartValue.Length;
-        //    for (int j = entityStartValue[i]; j < stopValue; j++)
-        //    {
-        //        newContext.Add(context[j]);
-        //    }
 
-        //    CalculateVelocity(i, ref state, newContext);
-        //}
+    }
 
-        //EntityOctreeGizmos.nodes = _octree.GetNodes().ToList();
 
-        //_octree.Dispose();
-        //entities.Dispose();
-        //contextMask.Dispose();
-        //
-        //transforms.Dispose();
-        //movementComponents.Dispose();
-        //sightComponents.Dispose();
-
+    public void ResetSystem()
+    {
+        firstUpdateDone = false;
     }
 
     
@@ -130,37 +101,21 @@ public partial struct FlockSystemOctreeJobs : ISystem
     [BurstCompile]
     public void OnDestroy(ref SystemState state)
     {
-        Debug.Log("DESTROYEEDE");
         entities.Dispose();
 
         transforms.Dispose();
         movementComponents.Dispose();
-        sightComponents.Dispose();
+        //sightComponents.Dispose();
 
         OARays.Dispose();
         octree.Dispose();
     }
 
-
-    //public static float GetSquareMagnitude(float3 v)
-    //{
-    //    return (v.x * v.x) + (v.y * v.y) + (v.z * v.z);
-    //}
-
-    //public static float GetMagnitude(float3 v)
-    //{
-    //    return Mathf.Sqrt((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
-    //}
-
-    //public static float3 NormalizedFloat3(float3 v)
-    //{
-    //    return v / GetMagnitude(v);
-    //}
 }
 
 
 [BurstCompile]
-public partial struct CalculateBoidsJob : IJobEntity
+public partial struct CalculateBoidsJobBurst : IJobEntity
 {
     [ReadOnly]
     public float deltaTime;
@@ -168,7 +123,7 @@ public partial struct CalculateBoidsJob : IJobEntity
     [ReadOnly]
     public EntityOctreeJobs octree;
 
-
+    [BurstCompile]
     public void Execute(in LocalTransform transform, ref AgentMovement movement, in AgentSight sight)
     {
         NativeList<LocalTransform> contextTransforms = new NativeList<LocalTransform>(Allocator.Temp);
@@ -179,6 +134,7 @@ public partial struct CalculateBoidsJob : IJobEntity
 
 
         force += CohesionBehaviour.CalculateEntityMovement(transform.Position, contextTransforms, 5);
+        //Can not do physics checks in jobs. I have therefore opted to not use it for this experiment
         //force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, OARays);
         force += AlignmentBehaviour.CalculateEntityMovement(movement, contextMovement, 10);
         force += SeparationBehaviour.CalculateEntityMovement(transform.Position, contextTransforms, 1000);
@@ -193,8 +149,7 @@ public partial struct CalculateBoidsJob : IJobEntity
         float squaredMaxSpeed = movement.maxSpeed * movement.maxSpeed;
         float squareMagnitudeNewVel = FlockSystem.GetSquareMagnitude(newVelocity);
 
-        //newVelocity = NormalizedFloat3(newVelocity) * movementComponents[index].ValueRO.maxSpeed;
-
+        //Deceleration
         if (squareMagnitudeNewVel > squaredMaxSpeed && squareMagnitudeNewVel > FlockSystem.GetSquareMagnitude(movement.velocity))
             newVelocity = FlockSystem.NormalizedFloat3(newVelocity) * (FlockSystem.GetMagnitude(movement.velocity) - (movement.deceleration * deltaTime));
 
@@ -203,14 +158,6 @@ public partial struct CalculateBoidsJob : IJobEntity
             newVelocity += FlockSystem.NormalizedFloat3(newVelocity) * (movement.acceleration * deltaTime);
 
 
-        //state.EntityManager.SetComponentData<AgentMovement>(entities[index], movementComponents[index].ValueRO.SetVelocity(newVelocity));
         movement.velocity = newVelocity;
-        //Debug.Log(movementComponents[index].ValueRO.velocity);
-
-        //if (index == 0)
-        //    Debug.Log(context.Length);
-
-        //contextTransforms.Dispose();
-        //contextMovement.Dispose();
     }
 }

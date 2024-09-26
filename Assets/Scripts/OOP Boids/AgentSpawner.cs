@@ -14,19 +14,42 @@ public class AgentSpawner : MonoBehaviour
     [SerializeField]
     private int agentCount = 20;
 
+    [SerializeField]
+    private bool _spawnAtStart;
+
+    private List<GameObject> _agents = new List<GameObject>();
+
     // Start is called before the first frame update
     void Start()
     {
-        for(int i= 0; i < agentCount; i++)
-        {
-            Instantiate(_agentPrefab, transform.position + (Random.insideUnitSphere * radius), Quaternion.identity);
-        }
+        if(_spawnAtStart)
+            SpawnAgents(agentCount);
     }
 
     // Update is called once per frame
     void Update()
     {
         
+    }
+
+
+    public void DespawnAgents()
+    {
+        for(int i = _agents.Count - 1; i >= 0; i--)
+        {
+            Destroy(_agents[i]);
+            _agents.RemoveAt(i);
+        }
+    }
+
+
+    public void SpawnAgents(int amount)
+    {
+        for (int i = 0; i < amount; i++)
+        {
+            _agents.Add(Instantiate(_agentPrefab, transform.position + (Random.insideUnitSphere * radius), Quaternion.identity));
+        }
+
     }
 
     private void OnDrawGizmosSelected()

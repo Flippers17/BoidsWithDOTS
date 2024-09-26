@@ -7,6 +7,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public partial struct FlockSystem : ISystem
 {
@@ -30,35 +31,29 @@ public partial struct FlockSystem : ISystem
 
     public void OnCreate(ref SystemState state)
     {
-        return;
+        //return;
         //state.RequireForUpdate<AgentMovement>();
         OARays = new ObstacleAvoidanceRays(45);
         //query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>() ,ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
         
         
         firstUpdateDone = false;
+        state.Enabled = false;
     }
 
     public void OnUpdate(ref SystemState state) 
     {
-        return;
+        //return;
         if (!firstUpdateDone)
         {
             query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
             entities = query.ToEntityArray(Allocator.Persistent);
-            //Debug.Log(entities.Length);
+
             transforms = new NativeArray<RefRO<LocalTransform>>(entities.Length, Allocator.Persistent);
             movementComponents = new NativeArray<RefRO<AgentMovement>>(entities.Length, Allocator.Persistent);
             sightComponents = new NativeArray<RefRO<AgentSight>>(entities.Length, Allocator.Persistent);
 
-            
-            ////movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Persistent);
-            //sightComponents = query.ToComponentDataArray<AgentSight>(Allocator.Temp);
-            //movementComponents = query.ToComponentDataArray<AgentMovement>(Allocator.Temp);
-            //transforms = query.ToComponentDataArray<LocalTransform>(Allocator.Temp);
-
             contextMask = new NativeArray<bool>(entities.Length, Allocator.Persistent);
-            //Debug.Log(contextMask.Length);
             firstUpdateDone = true;
         }
 
@@ -71,23 +66,10 @@ public partial struct FlockSystem : ISystem
             transforms[i] = transformLookup.GetRefRO(entities[i]);
             movementComponents[i] = movementLookup.GetRefRO(entities[i]);
             sightComponents[i] = sightLookup.GetRefRO(entities[i]);
-            //state.EntityManager.GetComponentDataRW<LocalTransform>(state.SystemHandle);
         }
 
-        //FlockAgentOcttree.instance.CreateNewTree();
-        //FlockAgentOcttree.
-        //EntityQuery query = state.GetEntityQuery(typeof(AgentMovement));
-
-
-        //state.EntityManager.GetComponentData<AgentMovement>(array[0]);
-        //Debug.Log("Array: " + array.Length);
-        //Debug.Log("Context: " + contextMask.Length);
-
-        //NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> context = new NativeArray<(RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>)> { [0] =  }
-        //foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) entity in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
         for (int i = 0; i < entities.Length; i++)
         {
-            ////foreach((RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>) other in SystemAPI.Query<RefRW<LocalTransform>, RefRW<AgentMovement>, RefRO<AgentSight>>())
             for (int j = 0; j < entities.Length; j++)
             {
                 if (i == j)
@@ -128,34 +110,37 @@ public partial struct FlockSystem : ISystem
         //{
         //    force += behaviours[i].behaviour.CalculateMovement(this, context, behaviours[i].forceMultiplier) * (behaviours[i].weight * weightMultiplier);
         //}
-        
-        //When all are active, they seem to be drawn towards 0, 0, 0 .
-        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5);
-        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, OARays);
-        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10);
-        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100);
 
-        //Debug.Log(force);
-        //Velocity is fucked up here somewhere...-
+        LocalTransform currentTransform = transforms[index].ValueRO;
+        AgentMovement currentMovement = movementComponents[index].ValueRO;
+
+
+        force += CohesionBehaviour.CalculateEntityMovement(currentTransform.Position, transforms, contextMask, 5);
+        //force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, OARays);
+        force += AlignmentBehaviour.CalculateEntityMovement(currentMovement, movementComponents, contextMask, 10);
+        force += SeparationBehaviour.CalculateEntityMovement(currentTransform.Position, transforms, contextMask, 100);
+        force += TargetSteeringBehaviour.CalculateEntityMovement(float3.zero, currentTransform.Position, 1f);
+
+
         force = force * deltaTime;
         float3 newVelocity = float3.zero;
-        newVelocity = movementComponents[index].ValueRO.velocity + force;
+        newVelocity = currentMovement.velocity + force;
 
 
-        float squaredMaxSpeed = movementComponents[index].ValueRO.maxSpeed * movementComponents[index].ValueRO.maxSpeed;
+        float squaredMaxSpeed = currentMovement.maxSpeed * currentMovement.maxSpeed;
         float squareMagnitudeNewVel = GetSquareMagnitude(newVelocity);
 
         //newVelocity = NormalizedFloat3(newVelocity) * movementComponents[index].ValueRO.maxSpeed;
 
-        if (squareMagnitudeNewVel > squaredMaxSpeed && squareMagnitudeNewVel > GetSquareMagnitude(movementComponents[index].ValueRO.velocity))
-            newVelocity = NormalizedFloat3(newVelocity) * (GetMagnitude(movementComponents[index].ValueRO.velocity) - (movementComponents[index].ValueRO.deceleration * deltaTime));
+        if (squareMagnitudeNewVel > squaredMaxSpeed && squareMagnitudeNewVel > GetSquareMagnitude(currentMovement.velocity))
+            newVelocity = NormalizedFloat3(newVelocity) * (GetMagnitude(currentMovement.velocity) - (currentMovement.deceleration * deltaTime));
 
         //acceleration
         if (GetSquareMagnitude(newVelocity) < squaredMaxSpeed)
-            newVelocity += NormalizedFloat3(newVelocity) * (movementComponents[index].ValueRO.acceleration * deltaTime);
+            newVelocity += NormalizedFloat3(newVelocity) * (currentMovement.acceleration * deltaTime);
 
 
-        state.EntityManager.SetComponentData<AgentMovement>(entities[index], movementComponents[index].ValueRO.SetVelocity(newVelocity));
+        state.EntityManager.SetComponentData<AgentMovement>(entities[index], currentMovement.SetVelocity(newVelocity));
         //Debug.Log(movementComponents[index].ValueRO.velocity);
 
 
@@ -164,8 +149,6 @@ public partial struct FlockSystem : ISystem
 
     public void OnDestroy(ref SystemState state) 
     {
-        return;
-        Debug.Log("DESTROYEEDE");
         entities.Dispose();
         contextMask.Dispose();
 
@@ -176,6 +159,11 @@ public partial struct FlockSystem : ISystem
         OARays.Dispose();
     }
 
+
+    public void ResetSystem()
+    {
+        firstUpdateDone = false;
+    }
 
 
     public static float GetSquareMagnitude(float3 v)
