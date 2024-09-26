@@ -130,10 +130,10 @@ public partial struct FlockSystem : ISystem
         //}
         
         //When all are active, they seem to be drawn towards 0, 0, 0 .
-        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5, ref state);
-        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, ref state, OARays);
-        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10, ref state);
-        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100, ref state);
+        force += CohesionBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 5);
+        force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, OARays);
+        force += AlignmentBehaviour.CalculateEntityMovement(movementComponents[index].ValueRO, movementComponents, contextMask, 10);
+        force += SeparationBehaviour.CalculateEntityMovement(transforms[index].ValueRO.Position, transforms, contextMask, 100);
 
         //Debug.Log(force);
         //Velocity is fucked up here somewhere...-

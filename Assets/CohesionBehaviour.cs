@@ -32,7 +32,7 @@ public class CohesionBehaviour : SteeringBehaviour
     }
 
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> context, NativeArray<bool> contextMask, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> context, NativeArray<bool> contextMask, float forceMultiplier)
     {
         int contextCount = context.Length;
 
@@ -63,7 +63,7 @@ public class CohesionBehaviour : SteeringBehaviour
     }
 
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> transforms, NativeList<int> context, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> transforms, NativeList<int> context, float forceMultiplier)
     {
         int contextCount = context.Length;
 
@@ -75,6 +75,28 @@ public class CohesionBehaviour : SteeringBehaviour
         for (int i = 0; i < contextCount; i++)
         {
             averagePosition += transforms[context[i]].ValueRO.Position;
+        }
+
+        averagePosition /= contextCount;
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        return (averagePosition - agentToMove) * (forceMultiplier);
+    }
+
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeList<LocalTransform> transforms, float forceMultiplier)
+    {
+        int contextCount = transforms.Length;
+
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 averagePosition = float3.zero;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            averagePosition += transforms[i].Position;
         }
 
         averagePosition /= contextCount;

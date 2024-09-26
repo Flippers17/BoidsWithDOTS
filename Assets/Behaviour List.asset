@@ -26,3 +26,6 @@ MonoBehaviour:
   - behaviour: {fileID: 11400000, guid: ed90e99445a3257469489b6663d3b0d3, type: 2}
     weight: 1
     forceMultiplier: 1
+  - behaviour: {fileID: 11400000, guid: e38c42eefde43e643a466648594c2c83, type: 2}
+    weight: 1
+    forceMultiplier: 1

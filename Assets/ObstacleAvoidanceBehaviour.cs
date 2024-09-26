@@ -80,7 +80,7 @@ public class ObstacleAvoidanceBehaviour : SteeringBehaviour
 
     }
 
-    public static float3 CalculateEntityMovement(LocalTransform agentTransform, AgentSight agentSight, float forceMultiplier, ref SystemState state, ObstacleAvoidanceRays rays)
+    public static float3 CalculateEntityMovement(LocalTransform agentTransform, AgentSight agentSight, float forceMultiplier, ObstacleAvoidanceRays rays)
     {
 
         float3 bestDir = agentTransform.Forward();

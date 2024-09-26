@@ -31,7 +31,7 @@ public class AlignmentBehaviour : SteeringBehaviour
         return averageVelocity;
     }
 
-    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeArray<RefRO<AgentMovement>> context, NativeArray<bool> contextMask, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeArray<RefRO<AgentMovement>> context, NativeArray<bool> contextMask, float forceMultiplier)
     {
         int contextCount = context.Length;
         if (contextCount == 0)
@@ -63,7 +63,7 @@ public class AlignmentBehaviour : SteeringBehaviour
     }
 
 
-    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeArray<RefRO<AgentMovement>> movementComponents, NativeList<int> context, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeArray<RefRO<AgentMovement>> movementComponents, NativeList<int> context, float forceMultiplier)
     {
         int contextCount = context.Length;
         if (contextCount == 0)
@@ -74,6 +74,30 @@ public class AlignmentBehaviour : SteeringBehaviour
         for (int i = 0; i < contextCount; i++)
         {
             averageVelocity += movementComponents[context[i]].ValueRO.velocity;
+        }
+
+
+        averageVelocity /= contextCount;
+        averageVelocity -= agentMovement.velocity;
+        averageVelocity *= forceMultiplier;
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        return averageVelocity;
+    }
+
+    public static float3 CalculateEntityMovement(AgentMovement agentMovement, NativeList<AgentMovement> movementComponents, float forceMultiplier)
+    {
+        int contextCount = movementComponents.Length;
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 averageVelocity = float3.zero;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            averageVelocity += movementComponents[i].velocity;
         }
 
 

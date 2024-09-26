@@ -41,7 +41,7 @@ public class SeparationBehaviour : SteeringBehaviour
         return separationVector;
     }
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> context, NativeArray<bool> contextMask, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> context, NativeArray<bool> contextMask, float forceMultiplier)
     {
         int contextCount = context.Length;
 
@@ -81,7 +81,7 @@ public class SeparationBehaviour : SteeringBehaviour
 
 
 
-    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> transforms, NativeList<int> context, float forceMultiplier, ref SystemState state)
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeArray<RefRO<LocalTransform>> transforms, NativeList<int> context, float forceMultiplier)
     {
         int contextCount = context.Length;
 
@@ -97,6 +97,37 @@ public class SeparationBehaviour : SteeringBehaviour
         for (int i = 0; i < contextCount; i++)
         {
             currentVector = (transforms[context[i]].ValueRO.Position - agentToMove);
+
+            float currentSquareMagnitude = FlockSystem.GetSquareMagnitude(currentVector);
+            if (currentSquareMagnitude < squaredProtectedRange)
+            {
+                separationVector -= currentVector * (forceMultiplier / Mathf.Max(currentSquareMagnitude, .1f));
+            }
+        }
+
+        //context.Dispose();
+        //contextMask.Dispose();
+
+        separationVector /= contextCount;
+        return separationVector;
+    }
+
+    public static float3 CalculateEntityMovement(float3 agentToMove, NativeList<LocalTransform> transforms, float forceMultiplier)
+    {
+        int contextCount = transforms.Length;
+
+        if (contextCount == 0)
+            return float3.zero;
+
+        float3 separationVector = float3.zero;
+
+        float3 currentVector;
+
+        float squaredProtectedRange = 9;
+
+        for (int i = 0; i < contextCount; i++)
+        {
+            currentVector = (transforms[i].Position - agentToMove);
 
             float currentSquareMagnitude = FlockSystem.GetSquareMagnitude(currentVector);
             if (currentSquareMagnitude < squaredProtectedRange)
