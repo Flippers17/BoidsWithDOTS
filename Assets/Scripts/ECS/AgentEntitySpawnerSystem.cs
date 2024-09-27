@@ -25,18 +25,12 @@ public partial struct AgentEntitySpawnerSystem : ISystem
     {
         state.Enabled = false;
 
-        for(int i = spawnedEntities.Length - 1; i >= 0; i--)
-        {
-            state.EntityManager.DestroyEntity(spawnedEntities[i]);
-            spawnedEntities.RemoveAt(i);
-        }
-
         //spawnedEntities.Clear();
 
         AgentEntitySpawner spawner = SystemAPI.GetSingleton<AgentEntitySpawner>();
         int amountToSpawn = doingExperiment ? spawnCount : spawner.agentCount;
 
-        for (int i = 0; i < spawner.agentCount; i++)
+        for (int i = 0; i < amountToSpawn; i++)
         {
             Entity e = state.EntityManager.Instantiate(spawner.entityPrefab);
             spawnedEntities.Add(e);
@@ -44,5 +38,20 @@ public partial struct AgentEntitySpawnerSystem : ISystem
             state.EntityManager.SetComponentData<AgentMovement>(e, state.EntityManager.GetComponentData<AgentMovement>(e).SetID(i));
         }
 
+    }
+
+    public void OnDestroy(ref SystemState state)
+    {
+        spawnedEntities.Dispose();
+    }
+
+
+    public void DestroyEntities(EntityManager eManager)
+    {
+        for (int i = spawnedEntities.Length - 1; i >= 0; i--)
+        {
+            eManager.DestroyEntity(spawnedEntities[i]);
+            spawnedEntities.RemoveAt(i);
+        }
     }
 }

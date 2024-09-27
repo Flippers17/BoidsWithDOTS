@@ -25,7 +25,7 @@ public partial class SystemHandlerSystem : SystemBase
                 break;
 
             case 3:
-                World.Unmanaged.ResolveSystemStateRef(CheckedStateRef.World.GetExistingSystem<FlockSystemOctreeJobs>()).Enabled = false;
+                World.Unmanaged.ResolveSystemStateRef(CheckedStateRef.World.GetExistingSystem<FlockSystemOctreeJobsBurst>()).Enabled = false;
                 break;
         }
     }
@@ -48,7 +48,7 @@ public partial class SystemHandlerSystem : SystemBase
                 break;
 
             case 3:
-                World.Unmanaged.ResolveSystemStateRef(CheckedStateRef.World.GetExistingSystem<FlockSystemOctreeJobs>()).Enabled = true;
+                World.Unmanaged.ResolveSystemStateRef(CheckedStateRef.World.GetExistingSystem<FlockSystemOctreeJobsBurst>()).Enabled = true;
                 break;
         }
     }
@@ -75,10 +75,16 @@ public partial class SystemHandlerSystem : SystemBase
         }
     }
 
-    public void SetSpawnAmount(int amount)
+    public void SpawnEntities(int amount)
     {
         World.Unmanaged.GetUnsafeSystemRef<AgentEntitySpawnerSystem>(CheckedStateRef.World.GetExistingSystem<AgentEntitySpawnerSystem>()).doingExperiment = true;
         World.Unmanaged.GetUnsafeSystemRef<AgentEntitySpawnerSystem>(CheckedStateRef.World.GetExistingSystem<AgentEntitySpawnerSystem>()).spawnCount = amount;
+        World.Unmanaged.ResolveSystemStateRef(CheckedStateRef.World.GetExistingSystem<AgentEntitySpawnerSystem>()).Enabled = true;
+    }
+
+    public void DestroyEntities()
+    {
+        World.Unmanaged.GetUnsafeSystemRef<AgentEntitySpawnerSystem>(CheckedStateRef.World.GetExistingSystem<AgentEntitySpawnerSystem>()).DestroyEntities(CheckedStateRef.EntityManager);
     }
 
 

@@ -9,6 +9,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+[UpdateAfter(typeof(AgentEntitySpawnerSystem))]
 public partial struct FlockSystem : ISystem
 {
     //private FlockAgentOcttree _octree;
@@ -44,6 +45,8 @@ public partial struct FlockSystem : ISystem
     public void OnUpdate(ref SystemState state) 
     {
         //return;
+        RecordingManager.StartSample();
+
         if (!firstUpdateDone)
         {
             query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
@@ -98,6 +101,7 @@ public partial struct FlockSystem : ISystem
         //movementComponents.Dispose();
         //sightComponents.Dispose();
 
+        RecordingManager.EndSample();
     }
 
     public void CalculateVelocity(int index, ref SystemState state)
@@ -118,7 +122,7 @@ public partial struct FlockSystem : ISystem
         force += CohesionBehaviour.CalculateEntityMovement(currentTransform.Position, transforms, contextMask, 5);
         //force += ObstacleAvoidanceBehaviour.CalculateEntityMovement(transforms[index].ValueRO, sightComponents[index].ValueRO, 1000, OARays);
         force += AlignmentBehaviour.CalculateEntityMovement(currentMovement, movementComponents, contextMask, 10);
-        force += SeparationBehaviour.CalculateEntityMovement(currentTransform.Position, transforms, contextMask, 100);
+        force += SeparationBehaviour.CalculateEntityMovement(currentTransform.Position, transforms, contextMask, 1000);
         force += TargetSteeringBehaviour.CalculateEntityMovement(float3.zero, currentTransform.Position, 1f);
 
 

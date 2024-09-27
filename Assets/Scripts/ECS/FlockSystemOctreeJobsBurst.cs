@@ -8,11 +8,11 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
-[BurstCompile]
+[BurstCompile, UpdateAfter(typeof(AgentEntitySpawnerSystem))]
 public partial struct FlockSystemOctreeJobsBurst : ISystem
 {
     //private FlockAgentOcttree _octree;
-    public EntityOctreeJobs octree;
+    public EntityOctreeJobsBurst octree;
 
     public ObstacleAvoidanceRays OARays;
 
@@ -35,7 +35,7 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
     public void OnCreate(ref SystemState state)
     {
         OARays = new ObstacleAvoidanceRays(45);
-        octree = new EntityOctreeJobs(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
+        octree = new EntityOctreeJobsBurst(6, 4, new Bounds(Vector3.zero, new Vector3(120, 120, 120)));
 
         firstUpdateDone = false;
         state.Enabled = false;
@@ -44,6 +44,8 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
     
     public void OnUpdate(ref SystemState state)
     {
+        RecordingManager.StartSample();
+
         if (!firstUpdateDone)
         {
             query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
@@ -76,7 +78,7 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
         }
 
 
-        var entityJob = new CalculateBoidsJob { octree = this.octree, deltaTime = SystemAPI.Time.DeltaTime };
+        var entityJob = new CalculateBoidsJobBurst { octree = this.octree, deltaTime = SystemAPI.Time.DeltaTime };
         var handle = entityJob.ScheduleParallel(query, state.Dependency);
         handle.Complete();
 
@@ -88,6 +90,7 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
         }
 
 
+        RecordingManager.EndSample();
     }
 
 
@@ -121,7 +124,7 @@ public partial struct CalculateBoidsJobBurst : IJobEntity
     public float deltaTime;
 
     [ReadOnly]
-    public EntityOctreeJobs octree;
+    public EntityOctreeJobsBurst octree;
 
     [BurstCompile]
     public void Execute(in LocalTransform transform, ref AgentMovement movement, in AgentSight sight)

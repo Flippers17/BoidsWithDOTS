@@ -29,6 +29,7 @@ public class FlockManager : MonoBehaviour
     [SerializeField, Tooltip("The distance a bird has to be from the average pos to not count towards it")]
     private float _averagePosThreshold = 20f;
 
+    public bool runSimulation = false;
 
     public Vector3 averagePos
     {
@@ -48,10 +49,21 @@ public class FlockManager : MonoBehaviour
     }
 
 
+    public void ResetSystem()
+    {
+        _agents.Clear();
+    }
+
     private void Update()
     {
+        if(!runSimulation)
+            return;
+
+        RecordingManager.StartSample();
         HandleMovement();
-        CalculateAveragePosition();
+
+        RecordingManager.EndSample();
+        //CalculateAveragePosition();
     }
 
 
@@ -62,9 +74,10 @@ public class FlockManager : MonoBehaviour
         _octtree.CreateNewTree();
         AddAgentsToOcttree();
 
-        float weightMultiplier = GetWeightMultiplier();
+        //float weightMultiplier = GetWeightMultiplier();
 
-        MoveAgents(weightMultiplier);
+        //MoveAgents(weightMultiplier);
+        MoveAgents(1);
         
     }
 

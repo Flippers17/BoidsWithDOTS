@@ -8,6 +8,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
+[UpdateAfter(typeof(AgentEntitySpawnerSystem))]
 public partial struct FlockSystemOctreeJobs : ISystem
 {
     //private FlockAgentOcttree _octree;
@@ -41,6 +42,9 @@ public partial struct FlockSystemOctreeJobs : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
+
+        RecordingManager.StartSample();
+
         if (!firstUpdateDone)
         {
             query = state.GetEntityQuery(ComponentType.ReadWrite<LocalTransform>(), ComponentType.ReadWrite<AgentMovement>(), ComponentType.ReadOnly<AgentSight>());
@@ -59,6 +63,9 @@ public partial struct FlockSystemOctreeJobs : ISystem
 
         for (int i = 0; i < entities.Length; i++)
         {
+            if (!firstUpdateDone)
+                return;
+
             transforms[i] = transformLookup.GetRefRO(entities[i]);
             movementComponents[i] = movementLookup.GetRefRO(entities[i]);
             //sightComponents[i] = sightLookup.GetRefRO(entities[i]);
@@ -84,7 +91,7 @@ public partial struct FlockSystemOctreeJobs : ISystem
             state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
         }
 
-
+        RecordingManager.EndSample();
     }
 
     

@@ -8,6 +8,7 @@ using UnityEngine;
 using Unity.Burst;
 
 
+[UpdateAfter(typeof(AgentEntitySpawnerSystem))]
 public partial struct FlockSystemWithOctree : ISystem
 {
     //private FlockAgentOcttree _octree;

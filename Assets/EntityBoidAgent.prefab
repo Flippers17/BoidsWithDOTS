@@ -54,8 +54,8 @@ MonoBehaviour:
   _deceleration: 5
   _acceleration: 10
   sightRadius: 12
-  viewAngle: 160
-  viewAngleCos: -0.9756293
+  viewAngle: 180
+  viewAngleCos: -0.5984601
   avoidanceMask:
     serializedVersion: 2
     m_Bits: 64

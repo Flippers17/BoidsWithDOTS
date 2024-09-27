@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5339d4d66a040814685ae418c28b69d7, type: 3}
   m_Name: Separation Behaviour
   m_EditorClassIdentifier: 
-  separationStrength: 100
+  separationStrength: 1000
   _protectedRange: 3

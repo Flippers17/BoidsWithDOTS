@@ -53,8 +53,8 @@ MonoBehaviour:
   _deceleration: 5
   _acceleration: 10
   sightRadius: 12
-  viewAngle: 160
-  viewAngleCos: -0.9756293
+  viewAngle: 180
+  viewAngleCos: -0.5984601
   avoidanceMask:
     serializedVersion: 2
     m_Bits: 64
@@ -258,7 +258,7 @@ Animator:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4985842174803662393}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: a80ef21c35c7ac24b8c6b9919e4803f0, type: 2}
   m_CullingMode: 0

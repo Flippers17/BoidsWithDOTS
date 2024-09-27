@@ -25,7 +25,7 @@ public class RecordingManager : MonoBehaviour
     {
         fileName = _resultsFilename;
         streamWriter = new StreamWriter(fileName);
-        resultsString = $"Agent Count; Regular Octree; Naive ECS; Octree ECS; Octree ECS+Jobs; Octree ECS+Jobs+Burst; 120 FPS; 60 FPS; 30 FPS; 15 FPS";
+        resultsString = $"Agent Count; Naive ECS; Octree ECS; Octree ECS+Jobs; Octree ECS+Jobs+Burst; Regular Octree; 120 FPS; 60 FPS; 30 FPS; 15 FPS";
         WriteResultsToFile();
         ResetResults();
     }

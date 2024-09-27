@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 872a1ee6b97668447930f5b3c666c4e0, type: 3}
+  m_Name: Experiment Behaviour
+  m_EditorClassIdentifier: 
+  maxSpeed: 30
+  items:
+  - behaviour: {fileID: 11400000, guid: 3b392ffcc7257b944ad13bdffdc7c331, type: 2}
+    weight: 1
+    forceMultiplier: 1
+  - behaviour: {fileID: 11400000, guid: 7dc3980e4f96abe4a8bdef0ebfbaee33, type: 2}
+    weight: 1
+    forceMultiplier: 1
+  - behaviour: {fileID: 11400000, guid: 28e2f2173a0c8054eb89842e70773134, type: 2}
+    weight: 1
+    forceMultiplier: 1
+  - behaviour: {fileID: 11400000, guid: e38c42eefde43e643a466648594c2c83, type: 2}
+    weight: 1
+    forceMultiplier: 1

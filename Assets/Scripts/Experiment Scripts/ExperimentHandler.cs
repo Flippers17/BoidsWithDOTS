@@ -19,10 +19,10 @@ public class ExperimentHandler : MonoBehaviour
     [SerializeField]
     private int _cancelDurationFactor = 4;
 
-
-    public static FlockSystem naiveECS;
-    public static FlockSystemWithOctree octreeECS;
-    public static FlockSystemOctreeJobs octreeEcsJobs;
+    [SerializeField]
+    private FlockManager _normalOctree;
+    [SerializeField]
+    private AgentSpawner _normalSpawner;
 
     //[Space(20), SerializeField]
     //private List<GameObject> _detectionPrefabs = new List<GameObject>();
@@ -46,7 +46,7 @@ public class ExperimentHandler : MonoBehaviour
     {
         List<int> circleCounts = GetCircleCounts();
 
-        //yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(2);
         //World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<SystemHandlerSystem>().DisableSystem(0);
         //yield break;
         //List<GameObject> detections = new List<GameObject>();
@@ -66,15 +66,19 @@ public class ExperimentHandler : MonoBehaviour
         foreach(int circleCount in circleCounts)
         {
             RecordingManager.AddResults(circleCount);
-            SystemHandler.SetSpawnAmount(circleCount);
+            
 
             for(int i = 0; i < 4; i++)
             {
                 if (removedAlgorithms.Contains(i))
                 {
                     RecordingManager.AddResults(0);
+                    Debug.Log("Algorithm " + i + " was removed");
                     continue;
                 }
+
+                //Sets amount to spawn and also spawns in new ones
+                SystemHandler.SpawnEntities(circleCount);
 
                 SystemHandler.EnableSystem(i);
 
@@ -93,42 +97,50 @@ public class ExperimentHandler : MonoBehaviour
                 SystemHandler.ResetSystem(i);
                 if (Time.unscaledTime > (realTimeStart + (_simulationDuration * _cancelDurationFactor)))
                 {
+                    Debug.Log("Removing algorithm " + i);
                     removedAlgorithms.Add(i);
                 }
 
                 RecordingManager.AddCurrentResults();
+                SystemHandler.DestroyEntities();
             }
 
+            //SystemHandler.DestroyEntities();
 
-            //if (isCanceled)
-            //{
-            //    RecordingManager.AddResults(0);
-            //    continue;
-            //}
 
-            //detections[i].SetActive(true);
-            //Enable system
-
-            //_experimentPort.BeginSimulation(circleCount);
-            fixedStartTime = Time.fixedTime;
-            realTimeStart = Time.unscaledTime;
-
-            while (Time.fixedTime < fixedStartTime + _simulationDuration)
+            if (removedAlgorithms.Contains(4))
             {
-                yield return null;
+                RecordingManager.AddResults(0);
+                //continue;
             }
-
-            //_experimentPort.EndSimulation();
-
-            //detections[i].SetActive(false);
-            //Disable system
-
-            if (Time.unscaledTime > (realTimeStart + (_simulationDuration * _cancelDurationFactor)))
+            else
             {
-                //isCanceled = true;
-            }
+                _normalSpawner.SpawnAgents(circleCount);
 
-            RecordingManager.AddCurrentResults();
+                _normalOctree.runSimulation = true;
+
+                //_experimentPort.BeginSimulation(circleCount);
+                fixedStartTime = Time.fixedTime;
+                realTimeStart = Time.unscaledTime;
+
+                while (Time.fixedTime < fixedStartTime + _simulationDuration)
+                {
+                    yield return null;
+                }
+
+                //_experimentPort.EndSimulation();
+
+                _normalOctree.runSimulation = false;
+                _normalOctree.ResetSystem();
+                if (Time.unscaledTime > (realTimeStart + (_simulationDuration * _cancelDurationFactor)))
+                {
+                    removedAlgorithms.Add(4);
+                }
+
+                RecordingManager.AddCurrentResults();
+                _normalSpawner.DespawnAgents();
+            }
+            
 
             RecordingManager.AddResults(1000 / 120f);
             RecordingManager.AddResults(1000 / 60f);
