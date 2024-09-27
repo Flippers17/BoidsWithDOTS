@@ -154,7 +154,7 @@ MonoBehaviour:
   _agentPrefab: {fileID: 4040531073084258682, guid: c425331c9a896fa48bb3cf676e17cc8e,
     type: 3}
   radius: 20
-  agentCount: 100
+  agentCount: 5000
   _spawnAtStart: 0
 --- !u!4 &2110241062
 Transform:

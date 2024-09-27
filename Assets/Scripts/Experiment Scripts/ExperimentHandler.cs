@@ -24,6 +24,8 @@ public class ExperimentHandler : MonoBehaviour
     [SerializeField]
     private AgentSpawner _normalSpawner;
 
+    [SerializeField]
+    private int _randomSeed;
     //[Space(20), SerializeField]
     //private List<GameObject> _detectionPrefabs = new List<GameObject>();
 
@@ -76,7 +78,7 @@ public class ExperimentHandler : MonoBehaviour
                     Debug.Log("Algorithm " + i + " was removed");
                     continue;
                 }
-
+                Random.InitState(_randomSeed);
                 //Sets amount to spawn and also spawns in new ones
                 SystemHandler.SpawnEntities(circleCount);
 

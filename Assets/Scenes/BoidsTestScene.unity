@@ -295,6 +295,7 @@ MonoBehaviour:
   _cancelDurationFactor: 2
   _normalOctree: {fileID: 1039429709}
   _normalSpawner: {fileID: 872383875}
+  _randomSeed: 93874
 --- !u!4 &345281700
 Transform:
   m_ObjectHideFlags: 0
