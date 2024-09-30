@@ -15,8 +15,9 @@ public struct EntityOctree
     private int _maxLevels;
     private int _nodeCapacity;
 
-    //This should maybe be a HashMap
+    //The nodes of the Octree
     NativeArray<EntityOctreeNode> _nodes;
+    //The indices of where every node's child nodes are in the _nodes array
     NativeArray<int> _childNodesIndex;
     //Stores the objects. The key is for the node ID and the values are the entities inside that node
     NativeParallelMultiHashMap<int, (int, float3)> _objects;
