@@ -11,7 +11,6 @@ using UnityEngine;
 [BurstCompile, UpdateAfter(typeof(AgentEntitySpawnerSystem))]
 public partial struct FlockSystemOctreeJobsBurst : ISystem
 {
-    //private FlockAgentOcttree _octree;
     public EntityOctreeJobsBurst octree;
 
     public ObstacleAvoidanceRays OARays;
@@ -19,10 +18,9 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
     private EntityQuery query;
     private NativeArray<Entity> entities;
 
-    //These should be NativeHashMaps
+
     public NativeArray<RefRO<LocalTransform>> transforms;
     public NativeArray<RefRO<AgentMovement>> movementComponents;
-    //public NativeArray<RefRO<AgentSight>> sightComponents;
 
     ComponentLookup<LocalTransform> transformLookup;
     ComponentLookup<AgentMovement> movementLookup;
@@ -44,6 +42,7 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
     
     public void OnUpdate(ref SystemState state)
     {
+        //For experiment
         RecordingManager.StartSample();
 
         if (!firstUpdateDone)
@@ -53,7 +52,6 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
 
             transforms = new NativeArray<RefRO<LocalTransform>>(entities.Length, Allocator.Persistent);
             movementComponents = new NativeArray<RefRO<AgentMovement>>(entities.Length, Allocator.Persistent);
-            //sightComponents = new NativeArray<RefRO<AgentSight>>(entities.Length, Allocator.Persistent);
 
             firstUpdateDone = true;
         }
@@ -66,12 +64,10 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
         {
             transforms[i] = transformLookup.GetRefRO(entities[i]);
             movementComponents[i] = movementLookup.GetRefRO(entities[i]);
-            //sightComponents[i] = sightLookup.GetRefRO(entities[i]);
         }
 
 
         octree.ClearTree();
-        //Insertion seems to work, based on drawing the nodes as gizmos in the scene view
         for (int i = 0; i < entities.Length; ++i)
         {
             octree.InsertPointToTree((i, transforms[i].ValueRO, movementComponents[i].ValueRO), transforms[i].ValueRO.Position);
@@ -89,7 +85,7 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
             state.EntityManager.SetComponentData<LocalTransform>(entities[i], newTransform.Translate(movementComponents[i].ValueRO.velocity * SystemAPI.Time.DeltaTime));
         }
 
-
+        //For experiment
         RecordingManager.EndSample();
     }
 
@@ -108,7 +104,6 @@ public partial struct FlockSystemOctreeJobsBurst : ISystem
 
         transforms.Dispose();
         movementComponents.Dispose();
-        //sightComponents.Dispose();
 
         OARays.Dispose();
         octree.Dispose();
@@ -145,8 +140,7 @@ public partial struct CalculateBoidsJobBurst : IJobEntity
 
         
         force = force * deltaTime;
-        float3 newVelocity = float3.zero;
-        newVelocity = movement.velocity + force;
+        float3 newVelocity = movement.velocity + force;
 
 
         float squaredMaxSpeed = movement.maxSpeed * movement.maxSpeed;

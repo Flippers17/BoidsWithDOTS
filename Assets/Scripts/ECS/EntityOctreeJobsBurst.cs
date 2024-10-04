@@ -68,7 +68,14 @@ public struct EntityOctreeJobsBurst
         TryInsertInNodes(0, e, point, 1);
     }
 
-    //Checks all childnodes of a parent node and recursively goes down levels if the node containg the point is also divided. If not, it is inserted in that node.
+
+    /// <summary>
+    /// Checks all childnodes of a parent node and recursively goes down levels if the node containg the point is also divided. If not, it is inserted in that node.
+    /// </summary>
+    /// <param name="startIndex">The first index of the nodes on that level</param>
+    /// <param name="e">The entity that is trying to be inserted</param>
+    /// <param name="point">The point which will be inserted to the tree</param>
+    /// <param name="currentLevel">What depth in the tree the investigated nodes are on</param>
     [BurstCompile]
     private void TryInsertInNodes(int startIndex, (int, LocalTransform, AgentMovement) e, float3 point, int currentLevel)
     {
@@ -87,6 +94,13 @@ public struct EntityOctreeJobsBurst
     }
 
 
+
+    /// <summary>
+    /// Insert an agent into a specified node. That node is subdivided if it exceeds the capacity and it is not in the lowest possible level of the tree.
+    /// </summary>
+    /// <param name="e">The entity that is trying to be inserted</param>
+    /// <param name="index">The index for the node that the object will be inserted into</param>
+    /// <param name="currentLevel">What depth in the tree the investigated node is on</param>
     [BurstCompile]
     private void InsertInNode((int, LocalTransform, AgentMovement) e, int index, int currentLevel)
     {
@@ -100,6 +114,11 @@ public struct EntityOctreeJobsBurst
     }
 
 
+
+    /// <summary>
+    /// Assigns child nodes for a given node
+    /// </summary>
+    /// <param name="nodeIndex">Index of the node that is being subdivided</param>
     [BurstCompile]
     private void SubdivideNode(int nodeIndex)
     {
@@ -136,6 +155,15 @@ public struct EntityOctreeJobsBurst
     }
 
 
+
+    /// <summary>
+    /// Function called outside of the struct to recieve neighbouring agents at a specified point
+    /// </summary>
+    /// <param name="entityID">The ID for the entity whose neighbours are being searched for</param>
+    /// <param name="agentSightRadius">The sight radius of the agent whose neighbours are being searched for</param>
+    /// <param name="point">The point of the entity whose neighbours are being searched for</param>
+    /// <param name="nTransforms">The List that the neighbours' LocalTransform components will be added to</param>
+    /// <param name="nMovement">The List that the neighbours' AgentMovement components will be added to</param>
     [BurstCompile]
     public void FindNeighbouringAgents(int entityID, float agentSightRadius, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovement)
     {
@@ -172,14 +200,24 @@ public struct EntityOctreeJobsBurst
     }
 
 
+
+    /// <summary>
+    /// Checking for neighbouring agents in each of the nodes in the highest level of the tree.
+    /// </summary>
+    /// <param name="entityIndex">The ID for the entity whose neighbours are being searched for</param>
+    /// <param name="agentSightRadius">The sight radius of the agent whose neighbours are being searched for</param>
+    /// <param name="agentPos">The point of the entity whose neighbours are being searched for</param>
+    /// <param name="nTransforms">The List that the neighbours' LocalTransform components will be added to</param>
+    /// <param name="nMovement">The List that the neighbours' AgentMovement components will be added to</param>
+    /// <returns>The index of the node that the neighbouring agents were found in. Returns -1 if no node contained the point</returns>
     [BurstCompile]
-    private int FindNeighbouringAgentsFromTop(int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovements)
+    private int FindNeighbouringAgentsFromTop(int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovement)
     {
         int nodeIndex = -1;
 
         for (int i = 0; i < 8; i++)
         {
-            nodeIndex = FindNeighbouringAgentsInNode(i, entityIndex, agentSightRadius, agentPos, point, ref nTransforms, ref nMovements);
+            nodeIndex = FindNeighbouringAgentsInNode(i, entityIndex, agentSightRadius, agentPos, point, ref nTransforms, ref nMovement);
             if (nodeIndex != -1)
                 return nodeIndex;
         }
@@ -187,6 +225,19 @@ public struct EntityOctreeJobsBurst
         return -1;
     }
 
+
+
+    /// <summary>
+    /// Finds neighbourin BOIDS agents in the specified node. If that node has child nodes, it will look for agents in those nodes recursively
+    /// </summary>
+    /// <param name="index">The index of the node that is being searched through</param>
+    /// <param name="entityIndex">The ID for the entity whose neighbours are being searched for</param>
+    /// <param name="agentSightRadius">The sight radius of the agent whose neighbours are being searched for</param>
+    /// <param name="agentPos">The point of the entity whose neighbours are being searched for</param>
+    /// <param name="point">The point around which other neighbouring agents will be searched for. Used mostly for when neighbouring nodes of the node that the current agent is in.</param>
+    /// <param name="nTransforms">The List that the neighbours' LocalTransform components will be added to</param>
+    /// <param name="nMovement">The List that the neighbours' AgentMovement components will be added to</param>
+    /// <returns>The index of the node that the neighbours were found in. Returns -1 if no node contained the point</returns>
     [BurstCompile]
     private int FindNeighbouringAgentsInNode(int index, int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<LocalTransform> nTransforms, ref NativeList<AgentMovement> nMovement)
     {

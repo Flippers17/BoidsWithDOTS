@@ -66,14 +66,18 @@ public struct EntityOctree
     }
 
     //Starts the process of inserting a point into the tree
-    //[BurstCompile]
     public void InsertPointToTree(int e, float3 point)
     {
         TryInsertInNodes(0, e, point, 1);
     }
 
-    //Checks all childnodes of a parent node and recursively goes down levels if the node containg the point is also divided. If not, it is inserted in that node.
-    //[BurstCompile]
+    /// <summary>
+    /// Checks all childnodes of a parent node and recursively goes down levels if the node containg the point is also divided. If not, it is inserted in that node.
+    /// </summary>
+    /// <param name="startIndex">The first index of the nodes on that level</param>
+    /// <param name="e">The ID for the entity that is trying to be inserted</param>
+    /// <param name="point">The point which will be inserted to the tree</param>
+    /// <param name="currentLevel">What depth in the tree the investigated nodes are on</param>
     private void TryInsertInNodes(int startIndex, int e, float3 point, int currentLevel)
     {
         for(int i =  startIndex; i < startIndex + 8; i++)
@@ -91,6 +95,13 @@ public struct EntityOctree
     }
 
 
+    /// <summary>
+    /// Insert an agent into a specified node. That node is subdivided if it exceeds the capacity and it is not in the lowest possible level of the tree.
+    /// </summary>
+    /// <param name="e">The ID for the entity that is trying to be inserted</param>
+    /// <param name="point">The point which will be inserted to the tree</param>
+    /// <param name="index">The index for the node that the object will be inserted into</param>
+    /// <param name="currentLevel">What depth in the tree the investigated node is on</param>
     private void InsertInNode(int e, float3 point, int index, int currentLevel)
     {
         _objects.Add(index, (e, point));
@@ -103,6 +114,10 @@ public struct EntityOctree
     }
 
 
+    /// <summary>
+    /// Assigns child nodes for a given node
+    /// </summary>
+    /// <param name="nodeIndex">Index of the node that is being subdivided</param>
     private void SubdivideNode(int nodeIndex)
     {
 
@@ -138,15 +153,19 @@ public struct EntityOctree
     }
 
 
+    /// <summary>
+    /// Function called outside of the struct to recieve neighbouring agents at a specified point
+    /// </summary>
+    /// <param name="entityID">The ID for the entity whose neighbours are being searched for</param>
+    /// <param name="agentSightRadius">The sight radius of the agent whose neighbours are being searched for</param>
+    /// <param name="point">The point of the entity whose neighbours are being searched for</param>
+    /// <param name="neighbours">The List that the neighbours will be added to</param>
     public void FindNeighbouringAgents(int entityID, float agentSightRadius, float3 point, ref NativeList<int> neighbours)
     {
         int nodeIndex = FindNeighbouringAgentsFromTop(entityID, agentSightRadius, point, point, ref neighbours);
 
         if(nodeIndex == -1)
-        {
-            //Debug.Log(point + "Does not exist in tree");
             return;
-        }
 
         EntityOctreeNode parent = _nodes[nodeIndex];
         float3 parentCenter = parent._bounds.center;
@@ -173,6 +192,15 @@ public struct EntityOctree
     }
 
 
+    /// <summary>
+    /// Checking for neighbouring agents in each of the nodes in the highest level of the tree.
+    /// </summary>
+    /// <param name="entityIndex">The ID for the entity whose neighbours are being searched for</param>
+    /// <param name="agentSightRadius">The sight radius of the agent whose neighbours are being searched for</param>
+    /// <param name="agentPos">The point of the entity whose neighbours are being searched for</param>
+    /// <param name="point">The point around which other neighbouring agents will be searched for. Used mostly for when neighbouring nodes of the node that the current agent is in.</param>
+    /// <param name="neighbours">The List that the neighbours will be added to</param>
+    /// <returns>The index of the node that the neighbouring agents were found in. Returns -1 if no node contained the point</returns>
     private int FindNeighbouringAgentsFromTop(int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<int> neighbours)
     {
         int nodeIndex = -1;
@@ -187,6 +215,17 @@ public struct EntityOctree
         return -1;
     }
 
+
+    /// <summary>
+    /// Finds neighbourin BOIDS agents in the specified node. If that node has child nodes, it will look for agents in those nodes recursively
+    /// </summary>
+    /// <param name="index">The index of the node that is being searched through</param>
+    /// <param name="entityIndex">The ID for the entity whose neighbours are being searched for</param>
+    /// <param name="agentSightRadius">The sight radius of the agent whose neighbours are being searched for</param>
+    /// <param name="agentPos">The point of the entity whose neighbours are being searched for</param>
+    /// <param name="point">The point around which other neighbouring agents will be searched for. Used mostly for when neighbouring nodes of the node that the current agent is in.</param>
+    /// <param name="neighbours">The List that the neighbours will be added to</param>
+    /// <returns></returns>
     private int FindNeighbouringAgentsInNode(int index, int entityIndex, float agentSightRadius, float3 agentPos, float3 point, ref NativeList<int> neighbours)
     {
         if (!_nodes[index].ContainsPoint(point))
@@ -212,7 +251,7 @@ public struct EntityOctree
         return index;
     }
 
-
+    //Only used for debugging
     public NativeArray<EntityOctreeNode> GetNodes()
     {
         return _nodes;
