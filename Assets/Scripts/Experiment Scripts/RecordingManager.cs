@@ -21,8 +21,14 @@ public class RecordingManager : MonoBehaviour
     private static double currentSampleStart = 0;
     private static List<TimeSample> currentSamples = new List<TimeSample>();
 
+    [SerializeField]
+    private bool _isRecording = true;
+
+    private static bool record = false;
+
     private void OnEnable()
     {
+        record = _isRecording;
         fileName = _resultsFilename;
         streamWriter = new StreamWriter(fileName);
         resultsString = $"Agent Count; Naive ECS; Octree ECS; Octree ECS+Jobs; Octree ECS+Jobs+Burst; Regular Octree; 120 FPS; 60 FPS; 30 FPS; 15 FPS";
@@ -38,6 +44,9 @@ public class RecordingManager : MonoBehaviour
 
     public static void WriteResultsToFile()
     {
+        if(!record) 
+            return;
+
         streamWriter.Write(resultsString);
         streamWriter.WriteLine();
     }
@@ -49,6 +58,9 @@ public class RecordingManager : MonoBehaviour
 
     public static void AddCurrentResults()
     {
+        if (!record)
+            return;
+
         resultsString += $"{GetRecorderFrameAverage():F7}; ";
         currentSamples.Clear();
     }
@@ -61,11 +73,16 @@ public class RecordingManager : MonoBehaviour
 
     public static void StartSample()
     {
+        if (!record)
+            return;
+
         currentSampleStart = Time.realtimeSinceStartupAsDouble;
     }
 
     public static void EndSample()
     {
+        if (!record)
+            return;
         double stopTime = Time.realtimeSinceStartupAsDouble;
         currentSamples.Add(new TimeSample(stopTime - currentSampleStart));
     }

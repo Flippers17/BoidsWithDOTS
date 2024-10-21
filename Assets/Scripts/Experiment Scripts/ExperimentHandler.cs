@@ -47,20 +47,12 @@ public class ExperimentHandler : MonoBehaviour
     public IEnumerator Run()
     {
         List<int> circleCounts = GetCircleCounts();
+        var SystemHandler = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<SystemHandlerSystem>();
+
+        SystemHandler.SpawnEntities(0);
 
         yield return new WaitForSeconds(2);
-        //World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<SystemHandlerSystem>().DisableSystem(0);
-        //yield break;
-        //List<GameObject> detections = new List<GameObject>();
-
-        //for(int i = _detectionPrefabs.Count - 1; i >= 0; i--)
-        //{
-        //    GameObject current = Instantiate(_detectionPrefabs[i]);
-        //    current.SetActive(false);
-
-        //    detections.Add(current);
-        //}
-        var SystemHandler = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<SystemHandlerSystem>();
+        
 
         HashSet<int> removedAlgorithms = new HashSet<int>();
 
